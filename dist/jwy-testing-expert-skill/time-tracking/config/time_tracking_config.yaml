@@ -1,0 +1,50 @@
+default_biz_line: "泾渭云"
+storage_mode: "mysql"
+local_storage:
+  dir: "time-tracking/{biz_line}"
+  records_file: "records.jsonl"
+  report_file: "time_analytics_{biz_line}.html"
+  csv_file: "time_analytics_{biz_line}.csv"
+mysql:
+  default_host: ""
+  default_port: 3306
+  default_user: ""
+  default_database: ""
+  default_table: "agent_time_tracking"
+reference_times:
+  - step_code: "P1"
+    step_name: "需求确认"
+    min_hours: 2
+    max_hours: 4
+  - step_code: "P2"
+    step_name: "代码分析"
+    min_hours: 2
+    max_hours: 5
+  - step_code: "P3-1"
+    step_name: "测试脑图生成"
+    min_hours: 3
+    max_hours: 5
+  - step_code: "P3-2"
+    step_name: "接口脑图生成"
+    min_hours: 3
+    max_hours: 6
+  - step_code: "P3-3"
+    step_name: "DMP用例脑图生成"
+    min_hours: 4
+    max_hours: 8
+  - step_code: "P4"
+    step_name: "DMP Excel转换"
+    min_hours: 2
+    max_hours: 4
+  - step_code: "P5"
+    step_name: "Confluence归档"
+    min_hours: 0.5
+    max_hours: 1
+rules:
+  mandatory: true
+  allow_skip: false
+  require_confirmation: true
+  adopt_reference_value: "midpoint"
+  no_feedback_after_retries: "midpoint"
+  no_feedback_remark: "用户未反馈，采用参考中间值"
+  max_feedback_retries: 2

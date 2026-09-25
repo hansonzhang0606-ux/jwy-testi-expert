@@ -1,0 +1,68 @@
+{
+  "title": "需求分析报告模板",
+  "metadata": "版本 / 日期 / 接口或模块 / 主题",
+  "conclusion": [
+    "填写需求核心结论。",
+    "填写当前最大不确定性。",
+    "填写建议下一步。"
+  ],
+  "rule_overview": [
+    {
+      "clientId": "对象/客户/角色",
+      "metric": "判断指标或业务规则",
+      "period": "统计周期",
+      "threshold": "阈值/条件",
+      "condition": "满足条件"
+    }
+  ],
+  "priority_items": [
+    {
+      "priority": "P0",
+      "question": "需要优先确认的问题",
+      "impact": "不确认会造成的影响",
+      "confirmation": "待填写"
+    }
+  ],
+  "decision_logic": [
+    {
+      "step": "1",
+      "decision": "判断步骤",
+      "result": "判断结果"
+    }
+  ],
+  "detailed_questions": [
+    "详细疑问 1",
+    "详细疑问 2"
+  ],
+  "ambiguities": [
+    {
+      "term": "模糊词/原文",
+      "issue": "为什么模糊",
+      "suggestion": "建议如何澄清"
+    }
+  ],
+  "missing_scenarios": [
+    {
+      "scenario": "遗漏场景",
+      "risk": "可能风险",
+      "suggestion": "建议处理"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC01",
+      "scenario": "验收场景",
+      "expected": "预期结果"
+    }
+  ],
+  "risks": [
+    {
+      "level": "高",
+      "risk": "风险点",
+      "description": "风险说明"
+    }
+  ],
+  "recommendation": [
+    "开发前建议确认 P0 项。"
+  ]
+}

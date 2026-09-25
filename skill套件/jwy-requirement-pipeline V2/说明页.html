@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="gs5Q8X9ma0mZ8m7VT0uyYs">
+<head data-page-node-id="eaXT4DP3az6i0CxcAzjDcg">
+<meta charset="UTF-8" data-page-node-id="ErdsUxSMYlc60JNYpaCmpo">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="Ft4593P8mjDr8Psk1NrwDF">
+<title>jwy-requirement-pipeline · 泾渭云需求全流程编排说明</title>
+<style>
+  :root{
+    --bg:#f7f9fc; --panel:#ffffff; --ink:#1f2a44; --muted:#5b6577;
+    --line:#e3e8f0; --brand:#2563eb; --brand2:#1e40af; --accent:#0ea5e9;
+    --ok:#16a34a; --warn:#d97706; --pill:#eef2ff; --pill2:#fef3c7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.65;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 64px}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    border-radius:16px;padding:28px 30px;box-shadow:0 10px 30px rgba(37,99,235,.18)}
+  header h1{margin:0 0 6px;font-size:26px;letter-spacing:.5px}
+  header .sub{opacity:.92;font-size:14.5px}
+  .badges{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+    padding:4px 10px;border-radius:999px;font-size:12.5px}
+  h2{margin:38px 0 14px;font-size:20px;display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--brand);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+  h3{margin:22px 0 8px;font-size:16px;color:var(--brand2)}
+  p{margin:8px 0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;box-shadow:0 2px 10px rgba(31,42,68,.04)}
+  /* 流程链路 */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .node{background:#fff;border:1.5px solid var(--brand);color:var(--brand2);
+    border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:600;text-align:center;min-width:120px}
+  .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px}
+  .arrow{color:var(--brand);font-size:20px;font-weight:700}
+  .branch{display:flex;gap:8px;flex-wrap:wrap}
+  .branch .node{min-width:96px}
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;
+    border:1px solid var(--line);margin:10px 0}
+  th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.6px}
+  th{background:#f1f5fb;color:var(--brand2);font-weight:700;font-size:13px}
+  tr:last-child td{border-bottom:none}
+  code{background:#eef2ff;color:#3730a3;padding:2px 6px;border-radius:6px;font-size:12.5px;
+    font-family:"SFMono-Regular",Consolas,monospace}
+  .kw{display:inline-block;background:var(--pill);color:#3730a3;border:1px solid #c7d2fe;
+    padding:2px 9px;border-radius:999px;font-size:12px;margin:2px 3px}
+  .dep-ok{color:var(--ok);font-weight:600}
+  .dep-no{color:var(--warn);font-weight:600}
+  /* step 卡片 */
+  .step{border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;
+    background:#fff;padding:16px 20px;margin:14px 0}
+  .step .hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .step .stepname{font-weight:700;font-size:16px;color:var(--brand2)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+  .cell{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .cell .t{font-size:12px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+  .cell .v{font-size:13.4px}
+  .note{background:var(--pill2);border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;
+    font-size:13.2px;color:#92400e;margin-top:12px}
+  pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px 16px;overflow:auto;
+    font-size:12.5px;line-height:1.55;font-family:"SFMono-Regular",Consolas,monospace}
+  pre .c{color:#7dd3fc}
+  footer{margin-top:46px;text-align:center;color:var(--muted);font-size:12.5px}
+  .toc{columns:2;column-gap:26px;font-size:13.5px}
+  .toc a{color:var(--brand2);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+</style>
+</head>
+<body data-page-node-id="qlKrDEliQZcCRFs5EpUaIE">
+<div class="wrap" data-page-node-id="N6hyzMB470IRFCQmpAGrd8">
+
+  <header data-page-node-id="zXGAFnSSE8nAMFdy7JmmpL">
+    <h1 data-page-node-id="ivlfHa0PtXmCWHWIEkXHDg">jwy-requirement-pipeline</h1>
+    <div class="sub" data-page-node-id="X3wz9dZGU8UdqYCnoStvfq">泾渭云需求全流程「组合编排」Skill 套件 · 说明页</div>
+    <div class="badges" data-page-node-id="ORUXvQpL45ZWePIJUkVBlQ">
+      <span class="badge" data-page-node-id="jWvqSwa9Mz7nAZuL3U25QA">5 步可独立触发</span>
+      <span class="badge" data-page-node-id="eZMD7CGH1DQkfRx9BYdtJz">7 个子 skill 已内嵌</span>
+      <span class="badge" data-page-node-id="ehCZECw0FCh1CUEX7VQ3BF">团队只需装 1 个</span>
+      <span class="badge" data-page-node-id="jDIyEFmTjXnPlVTBdnmQmG">自包含 · 无外部依赖</span>
+    </div>
+  </header>
+
+  <!-- 定位 -->
+  <div class="panel" style="margin-top:22px" data-page-node-id="UCQMZ7hdS7gVSBzQMsR0Mq">
+    <p style="margin-top:0" data-page-node-id="fkQZZ9SjKsRjABi1Xkncu2"><b data-page-node-id="jOcn6Btnk0pMae4mGZNIKv">一句话定位：</b>把「需求文档 → 需求确认 → 代码分析 → 需求脑图 → DMP 用例 → Confluence 归档」整条链路，按 <code data-page-node-id="YVgByubVqpdayvHQLVOAFU">step1</code>~<code data-page-node-id="8hFBQMaOsEY6Lyi4aQvxhl">step5</code> 关键字自动调度到对应子 skill，产物统一落到你指定的目录，并用状态文件记录链路进度。</p>
+    <p style="margin-bottom:0" data-page-node-id="HbLPjIfhesQZ44OCYzOATy"><b data-page-node-id="d8qJYgWZTDF1HspqZxZG3e">核心特性：</b>本套件为<b data-page-node-id="mdNrwuK96Pps3imk2NIzbt">自包含</b>设计——全部 7 个子 skill 已完整内嵌于 <code data-page-node-id="YUzv903lxKVKAStceMViMp">skills/</code> 子目录。团队其他成员<strong data-page-node-id="hiaNWkvzSW4cDWFjcUMSta">只需安装这一个总 skill</strong>，无需再单独安装任何子 skill。</p>
+  </div>
+
+  <!-- 目录 -->
+  <h2 data-page-node-id="SAm5hODshwdQFmPOHgut0b"><span class="n" data-page-node-id="v60KJIUoj3DBSsxdDkJlo1">·</span>目录</h2>
+  <div class="panel" data-page-node-id="6qLzRxqee7pS4eDXcIBePS">
+    <div class="toc" data-page-node-id="kuBbwCRmSQkjbi06U8qYRi">
+      <a href="#flow" data-page-node-id="Z6EqVvcvPr0ke1RuCG5Mji">一、整体流程链路</a><br data-page-node-id="LmX5mwDSrainv2xCQbuk70">
+      <a href="#kw" data-page-node-id="Z0nvJnMKCdQCrBPwFpNQlp">二、触发关键字速查</a><br data-page-node-id="FH3DYACGPZDfgsqI0pLqwz">
+      <a href="#input" data-page-node-id="dDH0QIwFFrZ9shIfdRkRY6">三、用户输入速查表</a><br data-page-node-id="4ZEd1XycDs1AFqkc7NjNWt">
+      <a href="#steps" data-page-node-id="WG7yHQGMUh7O4esBLOFJSl">四、各步调用详解</a><br data-page-node-id="DrKuY4bgOCFUxXX1UhLmd2">
+      <a href="#index" data-page-node-id="qSwl85CXnqHY2k0c1B7HRP">五、内嵌子 skill 索引</a><br data-page-node-id="G4P4QARwXoqnNEDHJa3t1T">
+      <a href="#deploy" data-page-node-id="Cyd4qobsbXnSv7P9UaI8rw">六、团队安装与依赖</a><br data-page-node-id="oad8jok54M4i8fJ9E0arSN">
+      <a href="#state" data-page-node-id="Xvv5JjmX8a4wl4nRIK8Nji">七、状态脚本用法</a><br data-page-node-id="HvdOQ1yBVixfzYzbYtETAI">
+    </div>
+  </div>
+
+  <!-- 一、流程 -->
+  <h2 id="flow" data-page-node-id="THITPh3P4xzHRP4Ois5Fcd"><span class="n" data-page-node-id="DtCaSuViqb1X1STiVXm7tQ">1</span>整体流程链路</h2>
+  <div class="panel" data-page-node-id="YZVTTKg1nGejkSQ6zDDi1Q">
+    <div class="flow" data-page-node-id="9H5JCquzu7A7MIPmkKIuIW">
+      <div class="node" data-page-node-id="Jze9aULrtf26uEmRoljfhm">需求文档<small data-page-node-id="eKJ84wgLv6rUj9Iy4MYYC9">Step1 需求确认</small></div>
+      <div class="arrow" data-page-node-id="B6FKEsRIYDpuoiOQzghgTP">→</div>
+      <div class="node" data-page-node-id="iB36y3sWsiTOjV7FRW6SmN">代码分析(可选)<small data-page-node-id="lGqkCbZiEVFHeuY28whJqx">Step2 与 Step1 联动</small></div>
+      <div class="arrow" data-page-node-id="g55AdwAM9hoJUSFmvmjsoJ">→</div>
+      <div class="node" data-page-node-id="D3XrCucBiWtcCFSku6ffpc">需求脑图<small data-page-node-id="LHsOoS8Pr46cGiPKua51Tb">Step3 三选一</small></div>
+      <div class="arrow" data-page-node-id="DB1PEP2d6lYmtJi7g9KHMD">→</div>
+      <div class="node" data-page-node-id="VM0PFNNG8mLdHQEmbUfL5p">转 DMP(选项1/2)<small data-page-node-id="iOfh8Ei9u1sivIgvieNEpT">Step4</small></div>
+      <div class="arrow" data-page-node-id="pRxEQtk2fNFyJS8efGuM7d">→</div>
+      <div class="node" data-page-node-id="dB87KHpaiwqcKHlQElfFhS">归档<small data-page-node-id="HKYL9uwFeNRegs8144D1fN">Step5 Confluence</small></div>
+    </div>
+    <h3 data-page-node-id="Gc1kp24UVqLd1n4xrgfAxL">Step3 三选一分支</h3>
+    <div class="branch" data-page-node-id="i60Xds0CZgmD55YjEuL993">
+      <div class="node" data-page-node-id="UNs4QL1sXVVs1yECaN9e0Y">选项1 非转dmp版脑图设计<small data-page-node-id="4Xmb4bo5D27RjJV1PBPXm2">xmind-testcase → 可走 Step4</small></div>
+      <div class="arrow" data-page-node-id="5ZPoXPss3fvonGABdrg1qh">·</div>
+      <div class="node" data-page-node-id="2yH78y8NwLpT7Dz5RHXNBV">选项2 产品接口维度脑图设计<small data-page-node-id="RreKFdpRUAdctqBBnHFA0o">req-analysis-xmind → 可走 Step4</small></div>
+      <div class="arrow" data-page-node-id="YXBQNy0R5hsI9lYVDAUrma">·</div>
+      <div class="node" data-page-node-id="8uevcc0ir5AcGNP1UVSFhx">选项3 直接导入dmp版脑图设计<small data-page-node-id="1xHsGjh6WjKVOVVofUnHcp">generate-xmind-cases → 无 Step4</small></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:0" data-page-node-id="ZFbv4hqy2zQjF4vCPL5oPU"><b data-page-node-id="8kzfN3KEery9wFyyJzw79s">关键约束：</b>Step4 仅允许在 <span class="dep-ok" data-page-node-id="x3PrCpNC3aELtOIflNV7mN">Step3-选项1 / 选项2</span> 之后执行；选项3 已直接产出 DMP 格式，<span class="dep-no" data-page-node-id="ze5hovi0jobWRCVXmHr6qX">没有 Step4</span>，若误走 Step4 会提示「step3-选项3 无step4」并建议直接 Step5。</p>
+  </div>
+
+  <!-- 二、关键字 -->
+  <h2 id="kw" data-page-node-id="RZMQYB5mppEWb5zhgNCaO5"><span class="n" data-page-node-id="268B3f5DBgH7YeSXd8j8hL">2</span>触发关键字速查</h2>
+  <div class="panel" data-page-node-id="H0oT0UUM9diobpAoFkq8ZU">
+    <p data-page-node-id="ykobczX8zSQYcYpcHKQGx9">用户消息包含下列任一关键字 + 指定目录（输出目录）即进入本编排。你无需记忆映射，按关键字路由即可：</p>
+    <table data-page-node-id="at0jhDRCoaa6gMqhvzpT22">
+      <thead data-page-node-id="IOXZiETsPmuHNVB11Ov9A2"><tr data-page-node-id="ZvaNGCNGxWpNPexGZdA4Iy"><th data-page-node-id="GCAFlUREeZ0x6ypNCtRPzZ">关键字（中/英/编号）</th><th data-page-node-id="e1y91VuRLnHupeMXY0vzbp">路由到</th><th data-page-node-id="kXWnkglrx34ZuUPSWUOays">内嵌子 skill</th></tr></thead>
+      <tbody data-page-node-id="XO8whCxGCIbA2O7zvcGyAq">
+        <tr data-page-node-id="hwemy7XJsCNIOoFdf6wUt1"><td data-page-node-id="GyEDPOf30ansPFHezJmpXK"><span class="kw" data-page-node-id="CCp44RIUygSwHhE4fgOktm">step1</span><span class="kw" data-page-node-id="V7FpH0jM13m0wOIHNAdAoY">需求确认</span><span class="kw" data-page-node-id="0GdqPOXosOiCtRE5nV90FF">需求分析</span><span class="kw" data-page-node-id="Hh2s7P2UwpburCD9pDFpZ4">分析确认需求</span></td><td data-page-node-id="zy9unHLTUvq2BLbR0bhES5">Step 1</td><td data-page-node-id="95bJuSu8CNv0Y4Gz80vuxY"><code data-page-node-id="ExRO3nNiv9pZCr2Mn7flAE">requirement-analysis-docx</code></td></tr>
+        <tr data-page-node-id="RMhAuSgOPVAjAByOB40rW7"><td data-page-node-id="YSHyYDEUg2gAigWZRhvAu4"><span class="kw" data-page-node-id="iV4MtaYckcNe3UWlOSY75D">step2</span><span class="kw" data-page-node-id="m3Tov9GXhk5toFYhtmArDz">代码分析</span><span class="kw" data-page-node-id="Ls8hkmzJ3vTUuTjAPXE7bb">code analyze</span><span class="kw" data-page-node-id="qqblcKggB8oKNzi7vIskWC">分析变更</span></td><td data-page-node-id="hBYSAVrDm8uE227M7LFEj5">Step 1+2（与需求文档同消息时联动）</td><td data-page-node-id="xwHqX9VY7ywQxrvQV0ZZTJ"><code data-page-node-id="e5XsJYtRVMKGOlRsLgDxm9">code-analyzer</code></td></tr>
+        <tr data-page-node-id="F0YyD7VBBeMWBKeiG9FB69"><td data-page-node-id="5x6hN8gLmTRDbRG8RdXVnp"><span class="kw" data-page-node-id="HxGXaGp8zy84TKjVhKDbuy">step3-选项1</span><span class="kw" data-page-node-id="905AZs9KF1tMsuEe3LQp2T">生成测试脑图</span><span class="kw" data-page-node-id="NwJM2QeRMmBC73PEdww4uV">测试点脑图</span><span class="kw" data-page-node-id="KIerF1AUtUvkqLtv46J8zF">非转dmp</span></td><td data-page-node-id="eZHVOcLRkzIodSp7CwbFDw">Step 3 选项1</td><td data-page-node-id="VupVlrgqVw6hXdP3wfSowU"><code data-page-node-id="ycvIkfBNYRouiUeQsToVuz">xmind-testcase</code></td></tr>
+        <tr data-page-node-id="uNTqzKgKXEqyEgXTtSjpQ9"><td data-page-node-id="fNLBdxxObRzCiVTHrvIvXc"><span class="kw" data-page-node-id="HgBxjMXqGLu7l0jj1rCCsw">step3-选项2</span><span class="kw" data-page-node-id="MqRYqthukah3CLwVSrrxyz">接口维度分析</span><span class="kw" data-page-node-id="r8JjFtFSl51pP8eoaW7mNG">入参出参</span><span class="kw" data-page-node-id="1M7BkIiZ5lZRbqAewqG7MU">扣费分析</span><span class="kw" data-page-node-id="a1VGITJTB4rnoUAZICyS6m">定制化产品</span></td><td data-page-node-id="SnQony9PzziaQlfCxnfoaz">Step 3 选项2</td><td data-page-node-id="OCsQVkZ0X7Pfuk4a6GqsGt"><code data-page-node-id="js1hUTYl6IK0X2iFk9l5gM">req-analysis-xmind</code></td></tr>
+        <tr data-page-node-id="IUkVWvC4LK1O1KcCkvB4go"><td data-page-node-id="ekxgl2zNVuHJf1cy4vM2Wq"><span class="kw" data-page-node-id="aj6PYmyBWMgPaeYeSgB4tR">step3-选项3</span><span class="kw" data-page-node-id="hc88OAKRmmt7797iNxsNmj">迭代用例</span><span class="kw" data-page-node-id="FIQdDBjOh8jMs24lJi20JV">回归测试</span><span class="kw" data-page-node-id="je6Nv09qp1EgWSSLL2xJZs">转dmp</span><span class="kw" data-page-node-id="6IM83SErpE0VyzKIioGaHK">DMP 用例</span><span class="kw" data-page-node-id="GHEJVhUF6D17icAdPxMaa0">PRJ</span></td><td data-page-node-id="Zic4pETh7RdjxxlDC66Ato">Step 3 选项3</td><td data-page-node-id="JMJHDeF7se3dLwLwOhdfqB"><code data-page-node-id="ZPdiLuUMkBwCC8hCMMqQ4H">generate-xmind-cases</code></td></tr>
+        <tr data-page-node-id="OACdbmSjXkdk9T4H2sVXHN"><td data-page-node-id="45mWvLDsQPgVSx8DwYRc7X"><span class="kw" data-page-node-id="9qcV0AZMhDsrX5kM87VQu7">step4</span><span class="kw" data-page-node-id="H6uCTvlEgkwWarW8zDkWbs">xmind转excel</span><span class="kw" data-page-node-id="G3VxTuA8lHjtpwFCAalPmY">脑图转dmp</span><span class="kw" data-page-node-id="6E1BjnOAdBkf6DaplFUvRz">导入DMP</span></td><td data-page-node-id="rc5XjaevSLD31WBm7ArJl8">Step 4（仅选项1/2 后）</td><td data-page-node-id="mkbErleFbiBSL5sb1wCaAj"><code data-page-node-id="2vLTKrJbJQEp7baCgKoN87">xmind-to-testcase</code></td></tr>
+        <tr data-page-node-id="YrDF2zaertW1tp19Dg8Ryb"><td data-page-node-id="5hpufHqTUP4V7FiPbZ8OYM"><span class="kw" data-page-node-id="GTNFKU9C3sAGSJwzoYonki">step5</span><span class="kw" data-page-node-id="GEaOweqb69lzJaRRUEJ5as">上传confluence</span><span class="kw" data-page-node-id="thU3n89WbkMDQECrkH21cY">归档</span><span class="kw" data-page-node-id="3J2UmK9uE1xatkoOATDV1T">归类上传</span></td><td data-page-node-id="pKYMayMuKZen14lJoRiSxI">Step 5</td><td data-page-node-id="v4aWBk6GnjyIeKidoP1dHp"><code data-page-node-id="CvmAjgYykQlDtiC8Loa0gk">upload-to-confluence</code></td></tr>
+      </tbody>
+    </table>
+    <div class="note" data-page-node-id="I56mBLytBicrSGVErPDYAC">若用户只说「需求分析生成脑图」但没指明选项，<b data-page-node-id="jVqA1JKwtxKX3MeKTEtxsi">先停下来向用户确认走选项1 / 选项2 / 选项3</b>——三者产物与后续链路都不同。</div>
+  </div>
+
+  <!-- 三、用户输入速查表 -->
+  <h2 id="input" data-page-node-id="A19R57ovX0aKo0zIBujHO0"><span class="n" data-page-node-id="yqTKu88chulvkyf5oc2WTF">3</span>用户输入速查表</h2>
+  <div class="panel" data-page-node-id="D85Iiyzq2FRMybAJ4uYiKm">
+    <p data-page-node-id="qgKz5HFVmF0TRUwfGtjuYH">下面按用户实际输入形式，列出每一步需要带什么信息、最终调度哪个子 skill。你按这个格式写消息即可触发对应步骤：</p>
+    <table data-page-node-id="AH9qBSmuVi0VwiQAfLyALA">
+      <thead data-page-node-id="4lGJPRXDK2ZkHalHO9YIIg"><tr data-page-node-id="1HIlDpjJMDWzh8LF3nuvmM"><th data-page-node-id="hu404rYqgodD096Nog2IHv">用户输入</th><th data-page-node-id="lJ5fMupnOc5BHNN1JLwCEy">调度子 skill</th></tr></thead>
+      <tbody data-page-node-id="PyD3hFWiW38D9xApPqKNvN">
+        <tr data-page-node-id="RE77KWo0wAWSTQA6vAb7Z0"><td data-page-node-id="rbtgGGuBCG6GeZbDK8EdvY"><code data-page-node-id="EajkysOHdBDzmichixjN38">step1</code> / 分析确认需求 + 需求文档</td><td data-page-node-id="R84q44T9GJXiUCXbxCM8xQ"><code data-page-node-id="mUekkQ1PObjCIBRcoUzcHr">requirement-analysis-docx</code></td></tr>
+        <tr data-page-node-id="t6dM4uWuv0WVQW1wYqCLcc"><td data-page-node-id="av1kNQRu7kL05m6qn4dJg8"><code data-page-node-id="VnEIKKLecPqghntxH1Hmig">step1,step2</code> + 需求文档 + 仓库路径/开发分支/对比基线/重点关注</td><td data-page-node-id="jpjTWEfCMrjVBKHqBdPf57"><code data-page-node-id="3kYe6uKeojdjmCeEdTKp2t">requirement-analysis-docx</code> + <code data-page-node-id="YSKbnvVMuI11qgQG2taXpm">code-analyzer</code></td></tr>
+        <tr data-page-node-id="T3JfuB5bLRnwsuMHAQ0f2s"><td data-page-node-id="vkG4WgQUHN9tRsn81OKHrq"><code data-page-node-id="yjYuS93DiTxuEdypaBQn7D">step3-选项1</code> + 需求分析生成脑图</td><td data-page-node-id="Na1sKIBWuNUjxqeo9Wxe9Z"><code data-page-node-id="JsbQnVmxAEbLxWJnPDr8mv">xmind-testcase</code></td></tr>
+        <tr data-page-node-id="ZAFTYCyU6pfgvv51uIS0Uz"><td data-page-node-id="62xhG2CweaFUqRSS5Uekux"><code data-page-node-id="BcwrtugurDqx5okH6QUqx8">step3-选项2</code> + 需求分析生成脑图</td><td data-page-node-id="rarsn6Lnv1tcQc16vBvQZ1"><code data-page-node-id="3a5IyqQE2SZnZLYCLegZzM">req-analysis-xmind</code></td></tr>
+        <tr data-page-node-id="EAG5VWm31ntuH3pQk47xkt"><td data-page-node-id="rtetNGByvF302URcIrYMvo"><code data-page-node-id="wWnQmDQWT27pCUs5g25dE4">step3-选项3</code> + 需求分析生成脑图 + 文档</td><td data-page-node-id="UJKza2qiwsUohnXLi2fd47"><code data-page-node-id="pRfs3e3kz8EU0eVsrhAUVa">generate-xmind-cases</code></td></tr>
+        <tr data-page-node-id="WyhHLdLzs4xfRrKf8ph3w3"><td data-page-node-id="xPIGLcLSA3IccQ1Gt8Wwn7"><code data-page-node-id="d5fx4sUpHtG5J3USDFrBft">step4</code> + 文档（+ 功能路径列/适用版本/责任人列）</td><td data-page-node-id="AKddBG24Wdub02bWnnxKW9"><code data-page-node-id="JHgFknwiDU5ZrKcR11z0Mr">xmind-to-testcase</code></td></tr>
+        <tr data-page-node-id="rHfpDQGrgvC2DsMsmcPaz8"><td data-page-node-id="SywoeRFUsxCn9BA8FirHzm"><code data-page-node-id="Xhd37WE7ooXDUuGmAAjTWo">step5</code> + 目录 + 文件 + 命名 + 上传目录 id</td><td data-page-node-id="5AJxgDEXUPX9K316yLvKfB"><code data-page-node-id="Mc0D79UNDyyCFVEGUBMZWg">upload-to-confluence</code></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:0" data-page-node-id="QfDH8mrWdF5tfH9ZJRTvgI"><b data-page-node-id="H9F1GM1aHhGGjzDBJyP16G">关键依赖已验证：</b><code data-page-node-id="VBu1CS0izLNKWndMyl91cZ">step4</code> 仅在 <code data-page-node-id="yk6KC6UKyXYPA8Wu7BN8tX">step3-选项1/2</code> 完成后放行；走 <code data-page-node-id="0fvFcFAT94Nk7HLWPA2pVq">step3-选项3</code> 后再输入 <code data-page-node-id="OPXifB2l9hhOii81wCMffR">step4</code> 会被拦截并提示「step3-选项3 无step4」，建议直接走 <code data-page-node-id="h7VOiiHHht2J1Uk3FW62bG">step5</code> 归档。每一步产物统一落入你提供的「指定目录」，状态文件同源保存，跨轮次可追溯。</p>
+  </div>
+
+  <!-- 四、各步调用详解 -->
+  <h2 id="steps" data-page-node-id="QumD5j6FXAYPwUFdW93VQ8"><span class="n" data-page-node-id="4eNsqmtj7stFB6EBZ8nE82">4</span>各步调用详解</h2>
+  <div class="note" style="margin-top:10px" data-page-node-id="WyxpBcRxMG7tL94yrWFDwa">所有产物统一以 <code data-page-node-id="OJvIKkJHvYqTvtgMgqzLi7">需求名_步骤</code> 命名（需求名 = 去掉团队前缀、保留如 <code data-page-node-id="fjxzJ3UNLCASPl37vkY5hr">【泾渭云YYYYMMDD】</code> 的需求标识）；团队前缀 <code data-page-node-id="XWEdJdAFPdXL31j3ejwRLk">【余萍】</code> / <code data-page-node-id="OFuER9TxKlCK0fB4kYU6EC">【TD-AI】</code> 仅在 Step5 上传前追加。</div>
+
+  <div class="step" data-page-node-id="6x1aJ3o8CQPS4Hxc9LYByO">
+    <div class="hd" data-page-node-id="nHLR6h4PiDIONMpkdRuDp6"><span class="stepname" data-page-node-id="XXWYqWAns34M6l2GzFMMOF">Step 1 · 需求确认</span><span data-page-node-id="6DLkkdQvcUc98rDChhjq3f"><span class="kw" data-page-node-id="vEA19jb6yP0sKQ9I3dshEJ">step1</span> <span class="kw" data-page-node-id="ZxaHftp2pHwHFzDj4luXlR">需求确认</span> <span class="kw" data-page-node-id="CKhchNYL49SPX0XAD4H0He">需求分析</span></span></div>
+    <div class="grid" data-page-node-id="AvG6LsugaLSaQOM8A9GvJG">
+      <div class="cell" data-page-node-id="DI6xntRn10mb2Wy4hE1kjQ"><div class="t" data-page-node-id="6Cijf2H7OHGnIZpaxUaB9L">输入参数</div><div class="v" data-page-node-id="CFPga5teBKRjQntyFg2hdV">需求文档（docx / md / 图片 / 文字）</div></div>
+      <div class="cell" data-page-node-id="ktHZh7YL9DzsXJrcM2GgQw"><div class="t" data-page-node-id="CZiDGMHoRbUHY9fFCALAgQ">产物</div><div class="v" data-page-node-id="8AixAR2SlgJiP4JJ0kAD8u"><code data-page-node-id="kybEQY3rKDFXeWsl8K0m2P">需求名_需求确认.docx</code>（结构化需求分析 DOCX / 需求确认清单）</div></div>
+      <div class="cell" data-page-node-id="UGpkMFVqDweFyqVjRyvMCS"><div class="t" data-page-node-id="450xaEjn9R5euPx9kDwXp0">依赖</div><div class="v" data-page-node-id="ETOBHwyRtBlC2wrW9GBFQM"><span class="dep-ok" data-page-node-id="ZQtn7Bll8OFoe00xHvqJnT">无</span></div></div>
+      <div class="cell" data-page-node-id="bw1ngCLQOGYmYIrXm5jGk0"><div class="t" data-page-node-id="XdF5OnNNFB61kxBgx3dMxL">调度子 skill</div><div class="v" data-page-node-id="WILPvJd0MlJ0L3ZUSPoyHw"><code data-page-node-id="GV3vNyYC0p4bNyxm7YrxbN">requirement-analysis-docx</code></div></div>
+    </div>
+    <div class="note" data-page-node-id="1uJFqeo4zqVBKu7MuJSQ2h">仅当消息中<strong data-page-node-id="o6KNMTYe9jMonusE8x3CzA">不含</strong>仓库路径 / 开发分支 / 对比基线 / 重点关注时，只跑 Step 1。</div>
+  </div>
+
+  <div class="step" data-page-node-id="mSeGxqI14frVYnti3sE9cP">
+    <div class="hd" data-page-node-id="XNoABeG3vjKwCwplqpKf3U"><span class="stepname" data-page-node-id="AFiQcRY1DxQE7kjdAcnsaJ">Step 2 · 代码分析（与 Step1 联动）</span><span data-page-node-id="RXcxaLu7DXgwZs3Uk3dezL"><span class="kw" data-page-node-id="Owe4XHREtY4Cjk0VPBz6oh">step2</span> <span class="kw" data-page-node-id="8rPHpHAkLu1IRJ7GBYni3Z">代码分析</span> <span class="kw" data-page-node-id="ay8cPMytDlCrfhWxGiLlNw">分析变更</span></span></div>
+    <div class="grid" data-page-node-id="ZsMMExxVYqaFhWaSlkD6VU">
+      <div class="cell" data-page-node-id="9g8YXSH4TCyVaARBFmZrYc"><div class="t" data-page-node-id="FgrIydBo9C7mzytQjL3gHN">输入参数</div><div class="v" data-page-node-id="HpqmR54urg0nVfRXICcK2z">仓库路径、开发分支（目标分支）、对比基线（基线分支）、重点关注</div></div>
+      <div class="cell" data-page-node-id="5XclRiGoCuuQ42osIDzDRT"><div class="t" data-page-node-id="gRmq4KP80eBDv48IcP87BS">产物</div><div class="v" data-page-node-id="m4O1KoeTDHnRRX0yiDMiyx"><code data-page-node-id="QW4NiA3glen1aM7EZ8P3yH">需求名_代码分析.docx</code>（代码分析总结：技术栈、业务规则、调用链、SQL/数据流、配置值、测试关注点）</div></div>
+      <div class="cell" data-page-node-id="nilZssA48YtSG5D64j9XxY"><div class="t" data-page-node-id="xr3WPBdPgCf009496ESFVI">依赖</div><div class="v" data-page-node-id="wxqDOSgWHkaAxyhY6PRWQ0">与 Step1 同消息触发</div></div>
+      <div class="cell" data-page-node-id="BtiOkqd04w755hQdD26LrG"><div class="t" data-page-node-id="8Twam6DQQj8WflFh4fXi2m">调度子 skill</div><div class="v" data-page-node-id="jqrnzHSJd7mYy1cyo1Kybg"><code data-page-node-id="Ah6wDQtrEouXbYFQsVfJ7g">code-analyzer</code></div></div>
+    </div>
+    <div class="note" data-page-node-id="UXxwwPAnAhTAM2upkv2Buc">当消息同时具备「需求文档 + 仓库路径类参数」时，编排同时调度 Step1 与 Step2。</div>
+  </div>
+
+  <div class="step" style="border-left-color:#0ea5e9" data-page-node-id="G9FT04TAuKa1Tl2DkQ6SDB">
+    <div class="hd" data-page-node-id="V9UkAHFI4Ul4FSYGkgjAtv"><span class="stepname" data-page-node-id="lQLicVVnFc9I4KRok4cjrR">Step 3 · 需求分析生成脑图（三选一）</span><span data-page-node-id="9RQ8mmJdRUXn0kB77Yd4Ir"><span class="kw" data-page-node-id="OzBTbswFk2cBvORqcUCdtS">step3-选项1/2/3</span> <span class="kw" data-page-node-id="Tuzo8JeJRQnFN9XF6TqWtv">需求分析生成脑图</span></span></div>
+    <div class="grid" data-page-node-id="SAnYdH7Dgd001mFJlIBkJz">
+      <div class="cell" data-page-node-id="C6BgaWqrUg7yK52iaFDtZC"><div class="t" data-page-node-id="5xFgHBPLQRowMPwWsBEbc9">选项1 · 非转dmp版脑图设计</div><div class="v" data-page-node-id="QWnu5NppM2qFzxwEWQNyY4">关键字：<code data-page-node-id="3DssvcELCDwpO477B7ya9F">step3-选项1</code> / 生成测试脑图 / 测试点脑图 / 非转dmp<br data-page-node-id="FrVgfBC8bjelVD0VwZeKSm">产物：<code data-page-node-id="Jr6Ovxt068wSy1Adk2bas4">需求名_测试脑图.xmind</code>（5 层纯文本 + 『』界面标识 + UI 展示效果覆盖）<br data-page-node-id="yD47hMtZabRJcj7ViFdHor">后续：<span class="dep-ok" data-page-node-id="tS0W31nBrL1RL1peKSE9Nf">可走 Step4</span><br data-page-node-id="YsiEY7zGlu9dCoXUqTrxTa">子 skill：<code data-page-node-id="UNEgzoAb2ive6ZOuHfF0av">xmind-testcase</code></div></div>
+      <div class="cell" data-page-node-id="fIfybI7ZWqPy5eFduJOPPF"><div class="t" data-page-node-id="DmQ7sVnZpi5LQuVnttxAPj">选项2 · 产品接口维度脑图设计</div><div class="v" data-page-node-id="7izRhdOvN7J79f7BRWXD1i">关键字：<code data-page-node-id="dSeTUHyUIccc5V9z7ZCe3o">step3-选项2</code> / 接口维度分析 / 入参出参 / 扣费分析<br data-page-node-id="24LfryC2ZGonsCXs8YM2M0">产物：<code data-page-node-id="DngKwQGh0EiJrsKQ0vnZrn">需求名_接口脑图.xmind</code>（入参/出参/扣费/接口文档）<br data-page-node-id="Q68JTkxstNjSWrwmbygRcg">后续：<span class="dep-ok" data-page-node-id="jhNrjDPPKG1NYhntEPfiHV">可走 Step4</span><br data-page-node-id="k5tteoAe7PRpNLeiLHY4eW">子 skill：<code data-page-node-id="tbSE5d8esQ987GLBSi4V5K">req-analysis-xmind</code></div></div>
+      <div class="cell" data-page-node-id="GE0Rfxd9U6aovf4GS8AoI7"><div class="t" data-page-node-id="vTpv7kl5o4bk2oLkooLxQo">选项3 · 直接导入dmp版脑图设计</div><div class="v" data-page-node-id="xCVKnzAHG24ABo3aAZyFSE">关键字：<code data-page-node-id="OlZ9tVzVIbuu0kGpS0LBjN">step3-选项3</code> / 迭代用例 / 回归测试 / 转dmp / PRJ<br data-page-node-id="qFDcQOzCZhn5NJUzKHnokH">产物：<code data-page-node-id="0koSc64SBKfQ2DRkhaCLqV">需求名_DMP用例.xmind</code> DMP 兼容用例脑图<br data-page-node-id="SWGLKoY63qEpfmtHZocdEa">后续：<span class="dep-no" data-page-node-id="ulrJ4TROMx6OLQocKbrQfd">无 Step4</span><br data-page-node-id="5vOqaEGXRWjUXLURyu4AqX">子 skill：<code data-page-node-id="GkU6NSCEfHIGwbMMX3AA2E">generate-xmind-cases</code></div></div>
+    </div>
+    <div class="note" data-page-node-id="YvpeY1BodOaAar8e9fZbuo">输入优先复用 <code data-page-node-id="2hVPOClXodjPXxiWP5MuaB">step1</code> / <code data-page-node-id="vXS8mDO43lpc1hdD1SnVm7">step2</code> 产物（调用 <code data-page-node-id="j5G43aYNQwjsxHfmDaki3p">products --step step3-inputs</code>），其次使用用户直接提供的文档。</div>
+  </div>
+
+  <div class="step" style="border-left-color:#16a34a" data-page-node-id="mENp7QQNYfukFOlzOeuEmS">
+    <div class="hd" data-page-node-id="E97sj1CYVMNOPa6PSaxLWj"><span class="stepname" data-page-node-id="bw1C7sjNYEi0gNAbqI9Amz">Step 4 · 脑图转 Excel 导入 DMP（选项1/2 专属）</span><span data-page-node-id="pz7HeyBto7KTs5cXTO1fsL"><span class="kw" data-page-node-id="2vAw5uYWFRXodk227pLxLT">step4</span> <span class="kw" data-page-node-id="zY1XheBaqs2JF0t63qSQli">xmind转excel</span> <span class="kw" data-page-node-id="D1BQjT5O7qq3lEw1gocgqq">导入DMP</span></span></div>
+    <div class="grid" data-page-node-id="FFPpagHPEPNCJiNuBBLJVi">
+      <div class="cell" data-page-node-id="VCnKwYwWiPRLZ5U3vNf70P"><div class="t" data-page-node-id="I2JJEqRQn875clQLxyxX6X">输入参数</div><div class="v" data-page-node-id="WvofOfJCzWVyQgAJYb9DOM">Step3 生成的 <code data-page-node-id="zF1Q2TLROWmJBV4tH5GcIs">.xmind</code>；可选 DMP 模板；列填充提示：功能路径列(caseGroup)、适用版本列(version)、责任人列(manager)</div></div>
+      <div class="cell" data-page-node-id="pZmgyeQPZAFGfctZXcGaTN"><div class="t" data-page-node-id="xwv6tsqcHvUX5gKuiKLSjD">产物</div><div class="v" data-page-node-id="AUKJ8dyF8vLtFYy2UdCKIc"><code data-page-node-id="GP8qbKMBkQWQp5hVbeQR9E">需求名_测试用例.xlsx</code> DMP 格式 Excel 测试用例（14 列模板）</div></div>
+      <div class="cell" data-page-node-id="XPL1UP6WH9wYrZigYuLGIT"><div class="t" data-page-node-id="rUHbCREv7R7p7WCUiYTtQu">依赖</div><div class="v" data-page-node-id="BcEH4WcAb7WXJLbKFEqvPJ"><span class="dep-ok" data-page-node-id="l6YY0P1XLZWSUOmrHPt2Kj">须先完成 Step3-选项1 / 选项2</span>（否则拒绝并提示）</div></div>
+      <div class="cell" data-page-node-id="rtdN3aASMmFDNIZM12JaQA"><div class="t" data-page-node-id="EH3XfSKquQa0lit3NYCD6k">调度子 skill</div><div class="v" data-page-node-id="lI3obXm4vZsNYPylEPTADT"><code data-page-node-id="qbbNeneBl3Z19GcbpuViaA">xmind-to-testcase</code></div></div>
+    </div>
+    <div class="note" data-page-node-id="g6HDjjqyDxXaKmkAFRx3BF">列映射由子 skill 按模板列名自动完成；manager 默认「余萍」，team/product/modulePath 默认「金蝶征信」，version 从脑图根节点日期推断。用户提供的「功能路径/适用版本/责任人」作为覆盖提示传入。</div>
+  </div>
+
+  <div class="step" style="border-left-color:#d97706" data-page-node-id="ILvPaLC05QeH7h8gkqWg4W">
+    <div class="hd" data-page-node-id="KSNOGi2S98A2phQymmiNhe"><span class="stepname" data-page-node-id="VQyAfUl9O4ZXH9CdiWAVem">Step 5 · 文档归类上传 Confluence</span><span data-page-node-id="oJdrRm2QBC1RM9oZJK9kYn"><span class="kw" data-page-node-id="nXfSRSiPAx9Nzew98lMjNY">step5</span> <span class="kw" data-page-node-id="cwo8AHUtBq8PAHbe6cJRxT">上传confluence</span> <span class="kw" data-page-node-id="hSgRbXCz5oD9zZzuHoHaSP">归档</span> <span class="kw" data-page-node-id="L1exW7wRRGZGxCuAcFYNuf">归类上传</span></span></div>
+    <div class="grid" data-page-node-id="FasfQMZVw79ECxZzAw1BvD">
+      <div class="cell" data-page-node-id="9HF8cEuhALDE1iJs5f0FEm"><div class="t" data-page-node-id="DhYobQ1N7QgxpxttORffhN">输入参数</div><div class="v" data-page-node-id="sXZW3rysLTLZEHwEFyHLmL">目录、文件清单（.docx / .xmind / .xlsx）、命名规则、上传目录 id（Confluence 页面 pageId）</div></div>
+      <div class="cell" data-page-node-id="9bNQKmrCav9s8V2emlkUkb"><div class="t" data-page-node-id="HLyM1G5sPFshjoWBwZ7XyS">产物</div><div class="v" data-page-node-id="BxVbE1nA0BcKlgVbF5fVfH">Confluence 页面附件链接（按团队 <code data-page-node-id="6XQc9tQJql1Qyyqsqm2ZxA">&lt;ac:link&gt;</code> 格式更新页面正文）</div></div>
+      <div class="cell" data-page-node-id="bhyn3VuhLHaRskWwwx3vB3"><div class="t" data-page-node-id="HCk3iVPvK84ehNiLJZgKxO">依赖</div><div class="v" data-page-node-id="7sgGsXoIsPGJgPuWP1hz49"><span class="dep-ok" data-page-node-id="kjuY9LVxQQ9PrRxCEWSpvB">无</span>（通常承接前面产物）</div></div>
+      <div class="cell" data-page-node-id="4siaP3cSCBBcNVKF7p34Gm"><div class="t" data-page-node-id="yEV7VOPgfUqHrzY3Y60080">调度子 skill</div><div class="v" data-page-node-id="JrpIDMF4wr0AKL9kYcBhfO"><code data-page-node-id="3NktNH0HiU8vAwaySvdYFJ">upload-to-confluence</code></div></div>
+    </div>
+    <div class="note" data-page-node-id="omJGHqO8qefBsySU6o3Gmj">传入的 pageId 视为「季度页」，脚本会自动<strong data-page-node-id="NAXqa7SpkHgZRDwpKsQMW3">建/复用需求子页</strong>并上传（不改动季度页正文）。上传前按「命名」规则规整文件名。</div>
+  </div>
+
+  <!-- 五、索引 -->
+  <h2 id="index" data-page-node-id="jFEkKp1Ghm3His4qcWQkPJ"><span class="n" data-page-node-id="sS3ARUQo1A0pRv0X6xwiaG">5</span>内嵌子 skill 索引</h2>
+  <div class="panel" data-page-node-id="tt1R6hyvm1jHPtSHHDgSlp">
+    <p data-page-node-id="6daxZGqVVx0PU58QWRcQWS">全部 7 个子 skill 已完整内嵌于本 skill 根目录的 <code data-page-node-id="hHsNefZWjPkzbiCuKG8P8U">skills/</code> 下，每个都含独立 <code data-page-node-id="2Gujf3BDFxtYc0DkoMo339">SKILL.md</code> / <code data-page-node-id="9nXkBOBF5QcFrQeOyd1dPz">scripts/</code> / <code data-page-node-id="SVUME9bU2cxmtcGeTyhYRE">references/</code>：</p>
+    <table data-page-node-id="fZ0jRr0TnfwwoS78TGudoe">
+      <thead data-page-node-id="2IhCXd2d2mY2vVimaqE2zR"><tr data-page-node-id="6aV1TpNXYdD8DTurRsJ9JU"><th data-page-node-id="a7e5ACatnJfchV8J3eFQu0">内嵌路径</th><th data-page-node-id="OU5mkDOSW4R5mdDyR0cl9E">用途</th></tr></thead>
+      <tbody data-page-node-id="bg7uvPobhuO54yEzxG7kHQ">
+        <tr data-page-node-id="rHO8K8DW2a0oB11qV544Xt"><td data-page-node-id="85jQW0hTiipR8k8CuLr6YG"><code data-page-node-id="jmwS6BSMAFb0a1kmyH5Gvk">skills/requirement-analysis-docx/</code></td><td data-page-node-id="KiAZsHOpyeb8JOSb3BWWU7">需求确认 DOCX</td></tr>
+        <tr data-page-node-id="GuTpShTXadaIHSMdSgtKp3"><td data-page-node-id="6uyZfy5SUciBfl5pTvO50a"><code data-page-node-id="P6owfYCBGOul7zHrOjiHNE">skills/code-analyzer/</code></td><td data-page-node-id="WP296tHum5Fdg39XI9mg9b">代码变更分析</td></tr>
+        <tr data-page-node-id="OWKYtILDDca5TDi2H2H8BE"><td data-page-node-id="0LO89aa4VERAS6vDguMfHT"><code data-page-node-id="YR1dHYXBsajbSmjsdpiNPY">skills/xmind-testcase/</code></td><td data-page-node-id="VD4MpAlDLPYfJBdtbQIY5H">非转dmp版脑图设计</td></tr>
+        <tr data-page-node-id="fSXgAokAm0HfZF7EXsHBzo"><td data-page-node-id="QZytXWAI2xNWhvseSgbqyn"><code data-page-node-id="DB6Mye2YK5EV1443tPAGB1">skills/req-analysis-xmind/</code></td><td data-page-node-id="ylQvfPOXbXkqvjHukWA0HJ">产品接口维度脑图设计</td></tr>
+        <tr data-page-node-id="hLynNrqQkdAFIWxEb7HALu"><td data-page-node-id="RzkE1so5AHIgzBGqRkuyFE"><code data-page-node-id="YJC1Cib0No7jPbLsdIAcnd">skills/generate-xmind-cases/</code></td><td data-page-node-id="8TrBKFGywWAkhVMx5mphMF">直接导入dmp版脑图设计</td></tr>
+        <tr data-page-node-id="ToaeTY9titSaaK8OELgT5G"><td data-page-node-id="pCeYGUXEKf7bQ7xmAQUpX2"><code data-page-node-id="FMOIIE64vKZ1jL9HLEUCfc">skills/xmind-to-testcase/</code></td><td data-page-node-id="ZomnuvLMTEm3nCS8V6IGZp">XMind → Excel DMP</td></tr>
+        <tr data-page-node-id="z8mR98D9W0UrdMyCdR1vht"><td data-page-node-id="r9uQ77B1LXRmrkp8iuKr7a"><code data-page-node-id="9CnL1mKsAR4qYrXuGdbdT5">skills/upload-to-confluence/</code></td><td data-page-node-id="yjnR0W9rD7LkNBakMwdbVO">Confluence 归档</td></tr>
+      </tbody>
+    </table>
+    <h3 data-page-node-id="9EwByGCrN4DoLVzhbmNILt">调用规范（重要）</h3>
+    <ul style="margin:6px 0;font-size:13.6px" data-page-node-id="mEx6TjEfafZQUgtDmSqsQa">
+      <li data-page-node-id="5MDoUk4aGlsLPEzJVtbxOQ"><b data-page-node-id="IBOqKcjBMTkszyUY6EAkIe">本 skill 的根目录</b> = 本 <code data-page-node-id="9wCLR9uMuUJCk2RgJyI9lL">SKILL.md</code> 所在目录，安装到任意位置都成立（不写死绝对路径）。</li>
+      <li data-page-node-id="Fsx0qWV8aYFe97pKsHGgUH">需要调度某子 skill 时：用 <code data-page-node-id="wuyKUIBAOb0rdbV7ro330L">Read</code> 工具读取 <code data-page-node-id="rSX3iTjErP1Hkl5JOMMG17">skills/&lt;子skill名&gt;/SKILL.md</code>，严格按其指示执行（含运行 <code data-page-node-id="4Db01IUl3F8xVAXIceMBWK">scripts/</code> 脚本、参考 <code data-page-node-id="RnManf9BZEL38GJmu1HEvb">references/</code>）。</li>
+      <li data-page-node-id="457TSGSaLCJYI9d2Q5pz81">子 skill 中的 <code data-page-node-id="8DejLxiKn5WggWR2Xfbs0k">scripts/xxx</code> / <code data-page-node-id="C4NQkrWUSsF0i2mLaPkTNB">references/yyy</code> 相对路径，<b data-page-node-id="sl7GFXUjdXpHMAwCqScSKU">一律解析为「本 skill 根/skills/&lt;子skill名&gt;/…」</b>。</li>
+      <li data-page-node-id="PNpIubr4AeCvoG9GsyUxdh"><b data-page-node-id="LE5xgaEwbML8CnSUnHgrbu">不要</b>用 <code data-page-node-id="f0KUN8F1HyqlGSHWFoxKQ8">Skill</code> 工具去加载外部的、同名子 skill——本套件必须自包含。</li>
+      <li data-page-node-id="bzYaPEs4naFUq4Unw2X6lt">子 skill 内部的示例路径（如 <code data-page-node-id="YIeX9PHPkXfIvc5Bs7fxe5">D:\需求\2026</code>、仓库路径）仅为演示，运行时由编排层传参覆盖。</li>
+    </ul>
+  </div>
+
+  <!-- 六、部署 -->
+  <h2 id="deploy" data-page-node-id="2R8USOurAYVUFZxwtaCMFN"><span class="n" data-page-node-id="TGkBMQzmfaWZxjpRz03BQt">6</span>团队安装与依赖</h2>
+  <div class="panel" data-page-node-id="zxbO6CxmrIu4z0LAAbFlHM">
+    <table data-page-node-id="xvV0QHvKshPRDk7PE8XK5w">
+      <thead data-page-node-id="mmqbnxrSgMIQdLSbZqk0J1"><tr data-page-node-id="Uwq88Ysyw3s4P5yZ01XuDk"><th data-page-node-id="Np194iruQUsTtmPY3U17p6">事项</th><th data-page-node-id="JIfYfgH73BBTTuaUyQsLtw">说明</th></tr></thead>
+      <tbody data-page-node-id="HOqLvFgaP31qMwQpXfotLx">
+        <tr data-page-node-id="vGP5H9PMegNEACJcqjvQVg"><td data-page-node-id="vzqZJKHU0JLtf7i6hsASGY"><b data-page-node-id="Ir4QrXdkb17LIjoiV69unl">安装</b></td><td data-page-node-id="EbnfVRhKQ0qdcE1lSKUKv5">把整个 <code data-page-node-id="OnSv6vxixjNkOdKEM4tWcz">jwy-requirement-pipeline</code> 目录放入 <code data-page-node-id="T4n7rULUl6L7C7Og51EgxF">~/.workbuddy/skills/</code>（或团队共享 skill 目录）即可，无需再装任何子 skill。</td></tr>
+        <tr data-page-node-id="wjCeyfibSL8dNB1GjYC3Op"><td data-page-node-id="4FTxcy0VAKezIJ60cbuAca"><b data-page-node-id="BalkDQNJp0pX1BHbdw4qQ7">Python 运行时</b></td><td data-page-node-id="sJTk245UCnM6ourND1R9DK">子 skill 脚本使用托管 Python（如 <code data-page-node-id="XWdSDBSfnn6WlIzakv1g5j">C:\Users\&lt;用户名&gt;\.workbuddy\binaries\python\versions\3.13.12\python.exe</code>）。团队环境不同时改用本机 Python 3.11+。</td></tr>
+        <tr data-page-node-id="eEcFXfBIqtnh6Uz8ZTR2pn"><td data-page-node-id="hlcIeMddzRxRAaStANRIas"><b data-page-node-id="wJ8kt8ekw6ecBCaI8FbBkH">Confluence 凭据</b></td><td data-page-node-id="pec3dHyNh1UU7eq2zvRbIF"><code data-page-node-id="LcavmlENxAwZ13NCzwPf51">upload-to-confluence</code> 从 <code data-page-node-id="9CWaBOo4BmNnrAQiAVo5mt">~/.workbuddy/mcp.json</code> 的 <code data-page-node-id="AAYrGxgJTji68jEhYt7cat">mcpServers.Confluence.env</code>（CONFLUENCE_URL / CONFLUENCE_USERNAME / CONFLUENCE_API_TOKEN）读取。每个成员需在本机配置自己的凭据；未配置时报错提示。</td></tr>
+        <tr data-page-node-id="9kp98TXrb18j9mPiydQ7Mq"><td data-page-node-id="enHayIG1iuyLcGuhcb5Q43"><b data-page-node-id="4fNdYqGHHWja6QZKZMuHXo">状态脚本</b></td><td data-page-node-id="NKeRwrK0LHcetpyf7kw223">本 skill 的 <code data-page-node-id="zdLCssOs7cAYaMBaqE9XWH">scripts/pipeline_state.py</code>（标准库，无第三方依赖）用于跨步骤状态与 Step4 依赖校验。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 七、状态脚本 -->
+  <h2 id="state" data-page-node-id="XOByDJGZYefisVdrSnkAJv"><span class="n" data-page-node-id="A6D0ECIV75YKxfDSbui6O2">7</span>状态脚本用法</h2>
+  <div class="panel" data-page-node-id="x6uHHuMOynjfIEt1nlBLhk">
+    <pre data-page-node-id="B9k5rLR1mQrkxrDsiVehgl"><span class="c" data-page-node-id="0CbOdHDYLlmQcg1JXVEsQx"># 初始化 / 读取状态（幂等）</span>
+python scripts/pipeline_state.py init --output-dir D:\需求\2026\7.16
+
+<span class="c" data-page-node-id="HmxoqahZPuLRQuwddMQ4aU"># 记录某步产物（更新状态文件）</span>
+python scripts/pipeline_state.py record --output-dir D:\需求\2026\7.16 --step step3-1 \
+  --products "D:\需求\2026\7.16\【泾渭云20260716】xxx_测试脑图.xmind"
+
+<span class="c" data-page-node-id="HPFSOlM1MfJIYDVOF6SMNP"># 校验 step4 依赖（退出码 0=允许，3=拒绝；stdout 含 allowed/reason）</span>
+python scripts/pipeline_state.py check --output-dir D:\需求\2026\7.16 --step step4
+
+<span class="c" data-page-node-id="x5pDJYVghbXeSUW4980DFB"># 取 step3 可复用的 step1/step2 产物路径</span>
+python scripts/pipeline_state.py products --output-dir D:\需求\2026\7.16 --step step3-inputs
+
+<span class="c" data-page-node-id="QEgu9WDCdT9a02HELdsfmH"># 查看完整状态</span>
+python scripts/pipeline_state.py status --output-dir D:\需求\2026\7.16</pre>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:0" data-page-node-id="96BoQrCwa52IAd48AQMb2Q">stepId 取值：<code data-page-node-id="vI4YuLvHodJv5cBG7NrZWd">step1</code> / <code data-page-node-id="kD0k1LzfOseCJ8D2KHOdfv">step2</code> / <code data-page-node-id="lBZkB2CdVORzr7wJMjNQAa">step3-1</code> / <code data-page-node-id="nq3lPAtnOp19QWT6AF3gPK">step3-2</code> / <code data-page-node-id="y0kfbPhhMFbs1NuCYT6J0H">step3-3</code> / <code data-page-node-id="RhXEKUMOr0TEFSFIZvsMaw">step4</code> / <code data-page-node-id="yXe23bqR8txauje8Y8yNiB">step5</code>。<code data-page-node-id="FFNCoQpVBd2Cz3j2H6E0Cr">--products</code> 多个产物用分号分隔。</p>
+  </div>
+
+  <footer data-page-node-id="9u0o2NkPNSbA9HVAB1u3DC">
+    jwy-requirement-pipeline · 泾渭云需求全流程编排套件 · 本说明页随总 skill 一同分发<br data-page-node-id="DPJAx4YZ45bxQS8zWuBRrn">
+    详细每步参数 / 产物 / 关键字参见 <code data-page-node-id="WUkseGD4YZWKjqrti6vx1M">references/steps.md</code>
+  </footer>
+
+</div>
+</body>
+</html>

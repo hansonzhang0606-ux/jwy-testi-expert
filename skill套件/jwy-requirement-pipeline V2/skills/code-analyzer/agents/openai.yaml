@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Analyzer"
+  short_description: "Analyze mixed-stack code evidence and disclose coverage gaps."
+  default_prompt: "Use $code-analyzer to analyze this repository's mixed-stack implementation evidence, syntax-level rules, SQL/data flow, coverage gaps, and test concerns."
+policy:
+  allow_implicit_invocation: true

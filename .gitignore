@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+*.log
+*.tmp
+*.bak
+skill套件/*.7z
+skill套件/*.zip
+skill套件/jwy-requirement-pipeline V1/
+.jwy_pipeline_state.json
+time_tracking_records.jsonl

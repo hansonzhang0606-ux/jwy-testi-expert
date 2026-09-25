@@ -1,0 +1,4 @@
+interface:
+  display_name: "需求分析 DOCX"
+  short_description: "按统一流程分析需求并生成一目了然的 Word 文档。"
+  default_prompt: "请使用该技能分析以下需求，输出疑问、模糊点、遗漏场景、风险和验收标准，并生成统一 DOCX 文件。"

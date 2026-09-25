@@ -1,0 +1,64 @@
+{
+  "name": "jingweiyun-testing-expert",
+  "version": "1.0.0",
+  "description": "Jingweiyun testing expert for the requirement-to-testcase pipeline with measurable time savings.",
+  "author": {
+    "name": "Quality Management Team",
+    "email": "qa@kingdee.com"
+  },
+  "agents": [
+    "./agents/jingweiyun-testing-expert.md"
+  ],
+  "skills": [
+    "./skills/jwy-testing-expert-skill"
+  ],
+  "expertType": "agent",
+  "agentName": "jingweiyun-testing-expert",
+  "displayName": {
+    "en": "Jingweiyun Testing Expert",
+    "zh": "泾渭云测试专家"
+  },
+  "profession": {
+    "en": "Jingweiyun Functional Testing Expert",
+    "zh": "泾渭云功能测试专家"
+  },
+  "displayDescription": {
+    "en": "[v1.0.0] Jingweiyun requirement-to-testcase workflow with time-saving tracking.",
+    "zh": "【v1.0.0】覆盖需求确认、代码分析、脑图用例、DMP转换和归档，并以强制工时追踪量化泾渭云测试效能。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "10-ProjectQuality",
+  "defaultInitPrompt": {
+    "zh": "开始泾渭云需求测试流程",
+    "en": "Start the Jingweiyun testing workflow"
+  },
+  "plugin": "jingweiyun-testing-expert",
+  "tags": [
+    {
+      "en": "Requirement Testing",
+      "zh": "需求测试"
+    },
+    {
+      "en": "Testcase Generation",
+      "zh": "用例生成"
+    },
+    {
+      "en": "Time Savings",
+      "zh": "工时追踪"
+    }
+  ],
+  "quickPrompts": [
+    {
+      "en": "Start the Jingweiyun testing workflow",
+      "zh": "开始泾渭云需求测试流程"
+    },
+    {
+      "en": "Analyze a Jingweiyun code change",
+      "zh": "执行泾渭云代码分析"
+    },
+    {
+      "en": "Show time-saving statistics",
+      "zh": "查看泾渭云工时统计"
+    }
+  ]
+}
