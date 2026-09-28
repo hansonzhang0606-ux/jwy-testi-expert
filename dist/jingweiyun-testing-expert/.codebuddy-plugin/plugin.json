@@ -23,8 +23,8 @@
     "zh": "泾渭云功能测试专家"
   },
   "displayDescription": {
-    "en": "[v1.0.0] Jingweiyun requirement-to-testcase workflow with time-saving tracking.",
-    "zh": "【v1.0.0】覆盖需求确认、代码分析、脑图用例、DMP转换和归档，并以强制工时追踪量化泾渭云测试效能。"
+    "en": "Jingweiyun requirement-to-testcase workflow with time-saving tracking.",
+    "zh": "覆盖需求确认、代码分析、脑图用例、DMP转换归档，并以强制工时追踪量化泾渭云测试效能。"
   },
   "avatar": "avatars/expert.png",
   "categoryId": "10-ProjectQuality",
