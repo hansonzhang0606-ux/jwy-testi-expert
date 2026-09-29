@@ -20,6 +20,15 @@ Write-Host "  泾渭云测试专家 - 本地安装注册" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# 0. 检测 WorkBuddy 是否在运行（运行中的进程可能覆盖/注销本脚本写入的注册）
+$wbRunning = @(Get-Process -Name "WorkBuddy" -ErrorAction SilentlyContinue).Count -gt 0
+if ($wbRunning) {
+    Write-Host "[!] 检测到 WorkBuddy 正在运行。" -ForegroundColor Yellow
+    Write-Host "    建议完全退出（托盘图标右键 -> 退出）后重新运行本脚本，装完再启动 WorkBuddy。" -ForegroundColor Yellow
+    Write-Host "    否则刚写入的注册可能被运行中的进程覆盖，导致专家在界面中看不到。" -ForegroundColor Yellow
+    Write-Host ""
+}
+
 # 1. 定位 WorkBuddy 主目录
 $wbHome = Join-Path $env:USERPROFILE ".workbuddy"
 if (-not (Test-Path $wbHome)) {
@@ -84,10 +93,8 @@ $samePath = ($sourceDir.TrimEnd('\') -ieq $destDir.TrimEnd('\'))
 if ($samePath) {
     Write-Host "[4/6] 脚本已在持久安装目录内运行，跳过复制（仅刷新注册）" -ForegroundColor Green
 } else {
-    if (Test-Path $destDir) {
-        Write-Host "[4/6] 清理旧版 my-experts 中的专家包..." -ForegroundColor White
-        Remove-Item $destDir -Recurse -Force
-    }
+    # 注意：不要先删除目标目录！运行中的 WorkBuddy 一旦检测到插件目录消失，
+    # 会把该专家从 marketplace.json 注销，导致装完反而看不到。此处采用覆盖式复制。
     New-Item -ItemType Directory -Path $destDir -Force | Out-Null
 
     $excludeDirs = @(".git", ".workbuddy", "__pycache__")
@@ -151,6 +158,21 @@ if ($needManifest) {
     $manifestJson = $manifest | ConvertTo-Json -Depth 5
     [System.IO.File]::WriteAllText($destManifestPath, $manifestJson, [System.Text.UTF8Encoding]::new($false))
     Write-Host "      marketplace.json 已创建/更新" -ForegroundColor DarkGray
+}
+
+# 5b. 写后校验：确认条目真的落在 marketplace.json 里（否则界面看不到）
+$manifestOk = $false
+if (Test-Path $destManifestPath) {
+    try {
+        $verify = Get-Content $destManifestPath -Encoding UTF8 -Raw | ConvertFrom-Json
+        foreach ($p in $verify.plugins) { if ($p.name -eq $expertId) { $manifestOk = $true; break } }
+    } catch {}
+}
+if ($manifestOk) {
+    Write-Host "[5/6] marketplace.json 校验通过（条目已存在）" -ForegroundColor Green
+} else {
+    Write-Host "[!] marketplace.json 中未找到本专家条目。" -ForegroundColor Yellow
+    Write-Host "    常见原因：WorkBuddy 正在运行并覆盖了注册。请完全退出后重新运行本脚本。" -ForegroundColor Yellow
 }
 
 # 6. 写入专家注册表
