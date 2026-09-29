@@ -114,7 +114,7 @@ python scripts/sync_to_mysql.py --biz-line "智慧记+运营系统"
 ### 身份验证
 - 会话开始时 AI 查询 MySQL `agent_team_roster` 表，盲输入姓名精确匹配
 - 匹配失败直接拒绝服务，无 fallback
-- 会话启动时 AI 自动检查 `mysql_config.json`：缺失则向用户索要密码并**自动调用 `init_mysql_config.py` 完成初始化**（无需手动开 CMD），不阻塞服务
+- 会话启动时 AI 自动检查 `~/.workbuddy/data/time-tracking/{biz_line}/mysql_config.json`：缺失则**自动调用 `init_mysql_config.py --biz-line {biz_line} --template --no-interactive --quiet`** 生成全空模板 + `mysql_config.notes.md` 字段说明，并**校验产物落地**；由测试人员按说明填写或找管理员获取。**AI 不在对话中索要密码**（v1.5.3 起的模板模式，取代早期"索要密码"做法）。
 
 ### 存储模式（storage_mode）
 - `mysql`（默认）：本地 JSONL 兜底 + 定时任务同步共享 MySQL，供团队汇总
