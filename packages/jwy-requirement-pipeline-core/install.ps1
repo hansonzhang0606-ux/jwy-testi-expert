@@ -1,4 +1,4 @@
-# 泾渭云测试专家 - 一键安装脚本
+﻿# 泾渭云测试专家 - 一键安装脚本
 # 用途：将本专家包注册到本地 WorkBuddy 的 my-experts 市场
 # 使用方法：右键本文件 →"使用 PowerShell 运行"
 # 前提：已安装 WorkBuddy 并至少打开过一次
@@ -8,6 +8,11 @@ $ErrorActionPreference = "Stop"
 $expertId = "jingweiyun-testing-expert"
 $skillId = "jwy-testing-expert-skill"
 $bizLine = "泾渭云"
+
+# 非交互环境（如被脚本/IDE 调用）下 Read-Host 不可用，需安全降级
+function Wait-ForKey {
+    try { [void](Wait-ForKey) } catch { }
+}
 
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Cyan
@@ -20,7 +25,7 @@ $wbHome = Join-Path $env:USERPROFILE ".workbuddy"
 if (-not (Test-Path $wbHome)) {
     Write-Host "[X] 未找到 WorkBuddy 目录: $wbHome" -ForegroundColor Red
     Write-Host "请确认 WorkBuddy 已安装并至少打开过一次。" -ForegroundColor Yellow
-    Read-Host "按回车键退出"
+    Wait-ForKey
     exit 1
 }
 Write-Host "[1/6] WorkBuddy 目录: $wbHome" -ForegroundColor Green
@@ -50,7 +55,7 @@ if (-not $userId) {
 if (-not $userId) {
     Write-Host "[X] 无法自动获取用户 ID。" -ForegroundColor Red
     Write-Host "请先在 WorkBuddy 中发起一个对话，完全退出后重新运行本脚本。" -ForegroundColor Yellow
-    Read-Host "按回车键退出"
+    Wait-ForKey
     exit 1
 }
 Write-Host "[2/6] 用户 ID: $userId" -ForegroundColor Green
@@ -60,7 +65,7 @@ $sourceDir = Split-Path -Parent $PSCommandPath
 if (-not (Test-Path (Join-Path $sourceDir ".codebuddy-plugin\plugin.json"))) {
     Write-Host "[X] 未在脚本所在目录找到专家包结构。" -ForegroundColor Red
     Write-Host "    请确认 install.ps1 位于 jingweiyun-testing-expert 专家包根目录。" -ForegroundColor Yellow
-    Read-Host "按回车键退出"
+    Wait-ForKey
     exit 1
 }
 Write-Host "[3/6] 专家包源目录: $sourceDir" -ForegroundColor Green
@@ -72,33 +77,41 @@ $destDir = Join-Path $myExpertsDir "plugins\$expertId"
 $destManifestDir = Join-Path $myExpertsDir ".codebuddy-plugin"
 $destManifestPath = Join-Path $destManifestDir "marketplace.json"
 
-if (Test-Path $destDir) {
-    Write-Host "[4/6] 清理旧版 my-experts 中的专家包..." -ForegroundColor White
-    Remove-Item $destDir -Recurse -Force
-}
-New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+# 源目录与目标目录相同时（脚本已在持久安装目录内运行），
+# 绝不能 Remove-Item —— 那会删掉正在运行的脚本自身，导致安装中断且专家包被清空。
+$samePath = ($sourceDir.TrimEnd('\') -ieq $destDir.TrimEnd('\'))
 
-$excludeDirs = @(".git", ".workbuddy", "__pycache__")
-$sourceItems = Get-ChildItem $sourceDir -Recurse -Force
-foreach ($item in $sourceItems) {
-    $relativePath = $item.FullName.Substring($sourceDir.Length + 1)
-    $skip = $false
-    foreach ($ex in $excludeDirs) {
-        if ($relativePath -like "*\$ex\*" -or $relativePath -like "$ex\*") { $skip = $true; break }
+if ($samePath) {
+    Write-Host "[4/6] 脚本已在持久安装目录内运行，跳过复制（仅刷新注册）" -ForegroundColor Green
+} else {
+    if (Test-Path $destDir) {
+        Write-Host "[4/6] 清理旧版 my-experts 中的专家包..." -ForegroundColor White
+        Remove-Item $destDir -Recurse -Force
     }
-    if ($skip) { continue }
+    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
 
-    $destPath = Join-Path $destDir $relativePath
-    if ($item.PSIsContainer) {
-        if (-not (Test-Path $destPath)) { New-Item -ItemType Directory -Path $destPath -Force | Out-Null }
-    } else {
-        $parentDir = Split-Path $destPath -Parent
-        if (-not (Test-Path $parentDir)) { New-Item -ItemType Directory -Path $parentDir -Force | Out-Null }
-        Copy-Item $item.FullName $destPath -Force
+    $excludeDirs = @(".git", ".workbuddy", "__pycache__")
+    $sourceItems = Get-ChildItem $sourceDir -Recurse -Force
+    foreach ($item in $sourceItems) {
+        $relativePath = $item.FullName.Substring($sourceDir.Length + 1)
+        $skip = $false
+        foreach ($ex in $excludeDirs) {
+            if ($relativePath -like "*\$ex\*" -or $relativePath -like "$ex\*") { $skip = $true; break }
+        }
+        if ($skip) { continue }
+
+        $destPath = Join-Path $destDir $relativePath
+        if ($item.PSIsContainer) {
+            if (-not (Test-Path $destPath)) { New-Item -ItemType Directory -Path $destPath -Force | Out-Null }
+        } else {
+            $parentDir = Split-Path $destPath -Parent
+            if (-not (Test-Path $parentDir)) { New-Item -ItemType Directory -Path $parentDir -Force | Out-Null }
+            Copy-Item $item.FullName $destPath -Force
+        }
     }
+    Write-Host "[4/6] 专家包已复制到 my-experts 持久路径" -ForegroundColor Green
+    Write-Host "      $destDir" -ForegroundColor DarkGray
 }
-Write-Host "[4/6] 专家包已复制到 my-experts 持久路径" -ForegroundColor Green
-Write-Host "      $destDir" -ForegroundColor DarkGray
 
 # 5. 创建/更新 marketplace.json
 $needManifest = $true
@@ -174,19 +187,58 @@ if ($alreadyRegistered) {
     Write-Host "[5/6] 专家注册成功！" -ForegroundColor Green
 }
 
+# 探测可用的 Python 解释器：系统 python / python3 / py -3 / WorkBuddy 托管 python
+function Find-Python {
+    $found = New-Object System.Collections.Generic.List[string]
+    foreach ($name in @("python", "python3")) {
+        $c = Get-Command $name -ErrorAction SilentlyContinue
+        if ($c) { $found.Add($c.Source) }
+    }
+    $launcher = Get-Command py -ErrorAction SilentlyContinue
+    if ($launcher) { $found.Add("py") }
+    $wbVenv = Join-Path $wbHome "binaries\python\envs\default\Scripts\python.exe"
+    if (Test-Path $wbVenv) { $found.Add($wbVenv) }
+    $wbBinRoot = Join-Path $wbHome "binaries\python\versions"
+    if (Test-Path $wbBinRoot) {
+        Get-ChildItem $wbBinRoot -Filter "python.exe" -Recurse -ErrorAction SilentlyContinue |
+            ForEach-Object { $found.Add($_.FullName) }
+    }
+    return $found
+}
+
 # 7. 可选：注册定时同步任务（指向持久路径，避免 cache 版本升级后假死）
 $batPath = Join-Path $destDir "skills\$skillId\time-tracking\scripts\sync_task.bat"
 $registerPyPath = Join-Path $destDir "skills\$skillId\time-tracking\scripts\register_sync_tasks.py"
 if ((Test-Path $batPath) -and (Test-Path $registerPyPath)) {
     Write-Host "[6/6] 正在注册/校验定时同步任务（指向持久路径）..." -ForegroundColor White
-    try {
-        $pyCmd = "python"
-        $pyResult = & $pyCmd $registerPyPath --biz-line $bizLine 2>&1
-        $pyResult | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
-    } catch {
-        Write-Host "[!] 定时任务注册失败（通常因权限不足）：$_" -ForegroundColor Yellow
-        Write-Host "    可后续以管理员身份手动运行：" -ForegroundColor Yellow
+    $pyCandidates = Find-Python
+    $registered = $false
+    if ($pyCandidates.Count -eq 0) {
+        Write-Host "[!] 本机未检测到 Python，跳过定时任务注册。" -ForegroundColor Yellow
+        Write-Host "    不影响使用：工时在每步提交时已直接写入 MySQL（提交即同步），" -ForegroundColor Yellow
+        Write-Host "    定时任务只是可选兜底。若确实需要，请先安装 Python 后手动执行：" -ForegroundColor Yellow
         Write-Host "    python `"$registerPyPath`" --biz-line $bizLine" -ForegroundColor Yellow
+    } else {
+        foreach ($py in $pyCandidates) {
+            try {
+                if ($py -eq "py") {
+                    $pyResult = & py -3 $registerPyPath --biz-line $bizLine 2>&1
+                } else {
+                    $pyResult = & $py $registerPyPath --biz-line $bizLine 2>&1
+                }
+                if ($LASTEXITCODE -eq 0) {
+                    $pyResult | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
+                    Write-Host "      解释器: $py" -ForegroundColor DarkGray
+                    $registered = $true
+                    break
+                }
+            } catch { }
+        }
+        if (-not $registered) {
+            Write-Host "[!] 定时任务注册未成功（通常因权限不足）。" -ForegroundColor Yellow
+            Write-Host "    可后续以管理员身份手动运行：" -ForegroundColor Yellow
+            Write-Host "    python `"$registerPyPath`" --biz-line $bizLine" -ForegroundColor Yellow
+        }
     }
 } else {
     Write-Host "[6/6] 未找到定时任务脚本，跳过。" -ForegroundColor Yellow
@@ -203,4 +255,4 @@ Write-Host "  2. 重新打开 WorkBuddy" -ForegroundColor White
 Write-Host "  3. 进入 [专家] -> 右上角 [我的专家]" -ForegroundColor White
 Write-Host "  4. 应该能看到 [泾渭云测试专家]" -ForegroundColor White
 Write-Host ""
-Read-Host "按回车键退出"
+Wait-ForKey
