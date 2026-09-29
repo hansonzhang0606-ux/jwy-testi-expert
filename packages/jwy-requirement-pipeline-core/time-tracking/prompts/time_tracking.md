@@ -1,5 +1,19 @@
 # 泾渭云工时追踪规则 v6.2-JWY（提交即同步 + 提示词回补兜底）
 
+## 零、会话启动（强制）：MySQL 配置闭环
+
+泾渭云业务线确定后、进入任何工时采集之前，**必须先完成本机 MySQL 配置检查**（每台机器只需成功一次）：
+
+1. 检查本机配置是否存在：`~/.workbuddy/data/time-tracking/泾渭云/mysql_config.json`
+2. **不存在 → AI 必须立即执行**（是"自动执行并校验"，不是"提示用户自己去执行"）：
+   python scripts/init_mysql_config.py --biz-line 泾渭云 --template --no-interactive --quiet
+   执行后**校验两个文件确已落地**：`mysql_config.json`（全空模板）与同目录 `mysql_config.notes.md`（逐字段填写说明）。未落地不得继续。
+3. 落地后告知测试人员：按同目录 `mysql_config.notes.md` 填写全部字段（不清楚的找管理员获取），填好后回复「已填好」即可继续。
+   **严禁在对话中索要数据库密码**，也不要让测试人员把凭据贴进对话或提交到 Git。
+4. 配置已存在则跳过，不重复生成；配置存在但字段为空时，提示其按 notes 补全后再继续。
+
+> `mysql_config.json` 是**本机文件**、不随专家包分发。因此其他测试人员首次使用本专家时，会自动获得空模板 + 字段说明，**只需填一次**，无需手动开 CMD，也无需管理员逐台配置。
+
 仅对流水线状态中实际完成的 P1、P2、P3-1/P3-2/P3-3、P4、P5 采集工时。完成产物后必须先独立生成 AI 预估、收集测试人员反馈并调用记录脚本，确认保存前禁止展示下一步。
 
 ## 记录与同步（融合方案 A+B）
@@ -38,4 +52,4 @@
 ## 身份与凭据
 
 身份验证查询 MySQL `agent_team_roster`，仅允许 `JWY` 精确匹配成员；数据库配置须在本机填写，不得在对话或发布包中收集、输出或保存凭据。
-若本机尚未初始化 MySQL 配置，AI 应提示运行 `python scripts/init_mysql_config.py --biz-line 泾渭云 --template`（生成空模板 + 备注说明），由测试人员按备注填写或找管理员获取，AI 不在对话中索要密码。
+若本机尚未初始化 MySQL 配置，按「零、会话启动」节**自动执行** `python scripts/init_mysql_config.py --biz-line 泾渭云 --template --no-interactive --quiet` 并校验产物落地，由测试人员按 `mysql_config.notes.md` 填写或找管理员获取，AI 不在对话中索要密码。
