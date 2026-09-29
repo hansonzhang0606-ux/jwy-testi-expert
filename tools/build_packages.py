@@ -47,6 +47,8 @@ description: |
 所有产物必须落在用户指定的绝对输出目录，并用 `scripts/pipeline_state.py` 维护状态。
 
 完成 P1/P2/P3-1~3/P4/P5 任一实际步骤后，必须先完成 `time-tracking/prompts/time_tracking.md` 定义的工时采集，才可进入下一步。仅补录当前状态文件中已完成的追踪步骤。
+
+工时按「提交即同步（A）+ 提示词回补（B）」自动进入 MySQL `agent_time_tracking` 表，无需等待定时任务；录错时用 `void_time_record.py` 软作废，不要 `DELETE`（同步账号无 DELETE 权限）。
 """)
     _write(destination / "prompts" / "pipeline.md", """# 泾渭云五步编排
 
@@ -113,13 +115,45 @@ rules:
   no_feedback_remark: "用户未反馈，采用参考中间值"
   max_feedback_retries: 2
 """)
-    _write(destination / "time-tracking" / "prompts" / "time_tracking.md", """# 泾渭云工时追踪规则 v6.2-JWY
+    _write(destination / "time-tracking" / "prompts" / "time_tracking.md", """# 泾渭云工时追踪规则 v6.2-JWY（提交即同步 + 提示词回补兜底）
 
 仅对流水线状态中实际完成的 P1、P2、P3-1/P3-2/P3-3、P4、P5 采集工时。完成产物后必须先独立生成 AI 预估、收集测试人员反馈并调用记录脚本，确认保存前禁止展示下一步。
 
-“采纳”取该步骤参考范围中间值；两次未提供实际值则记录中间值并备注“用户未反馈，采用参考中间值”。跨步骤补录只使用 `scripts/jwy_tracking.py` 从 `.jwy_pipeline_state.json` 计算的 eligible 集合，不得补录本次未执行的可选步骤或未选择的 Step3 分支。
+## 记录与同步（融合方案 A+B）
 
+【A·提交即同步】每一步完成并二次确认后，调用：
+  python scripts/secure_record_time_saved.py \\
+    --employee "姓名" --user-story "PRJ-xxxxxxx" --step "需求确认" --step-code "P1" \\
+    --hours 4.0 --biz-line 泾渭云 \\
+    [--remark ...] [--agent-start-time ...] [--agent-end-time ...] \\
+    [--agent-duration-minutes ...] [--ai-estimated-time-saved-hours ...]
+该脚本会在本地 records.jsonl 落盘成功后立即把本次及此前所有本地记录同步到 MySQL 的 agent_time_tracking 表（内部调用 sync_to_mysql.py），无需等待定时任务；同步失败仅告警、不阻断本地落盘。
+
+【B·提示词回补兜底】若某次记录只落到本地而未进 MySQL（如：提交即同步时 MySQL 不可用/未初始化、此前误用纯 record_time_saved.py、或人员忘了触发），由本提示词驱动 AI 在以下时机回补：
+  - 会话开始：检查本机 records.jsonl 是否已有未同步记录；
+  - 用户提及“同步工时 / 核对工时 / 工时没进库”等；
+  - 某步骤提交即同步返回告警时。
+回补命令（幂等，可重复执行，不影响已存在记录）：
+  python scripts/sync_to_mysql.py --biz-line 泾渭云
+  # 试运行先看不写：python scripts/sync_to_mysql.py --biz-line 泾渭云 --dry-run
+
+【可选安全网】如需额外定时兜底（与效贷 Lite 体验一致），可注册本机任务计划：
+  python scripts/register_sync_tasks.py --biz-line 泾渭云
+（每日 09:00/12:00/18:00 自动同步；核心保障仍是 A 提交即同步 + B 提示词回补，注册与否不影响数据入库。）
+
+【录错/误记录的处理：软作废】同步账号通常**无 DELETE 权限**（MySQL 1142），入库记录无法物理删除。当用户说“这条录错了 / 工时写错了 / 删掉这条”时，不要尝试 `DELETE`，改用软作废：
+  python scripts/void_time_record.py --biz-line 泾渭云 --id <数据库主键> --reason "原因"      # 最精确
+  python scripts/void_time_record.py --biz-line 泾渭云 --employee "姓名" --user-story "PRJ-xxxxxxx" --step-code "P4"
+  # 先预览：加 --dry-run
+作用：该行工时字段归零（time_saved_hours/time_saved_pd/total_hours=0）+ remark 打 `[作废]` 前缀 + 写入本机作废名单 `voided.json`；后续同步会跳过其 record_key，**不会被重新写回**。统计汇总按 SUM 计算时该行贡献为 0，等同删除。如需物理删除，请提示联系数据库管理员。
+
+## 采集口径
+“采纳”取该步骤参考范围中间值；两次未提供实际值则记录中间值并备注“用户未反馈，采用参考中间值”。
+跨步骤补录只认 `.jwy_pipeline_state.json` 中 `tracking.eligible` 的 P 标识集合，不得补录本次未执行的可选步骤或未选择的 Step3 分支；需与已记录集合做差集时，可调用 skill 根目录下的 `scripts/jwy_tracking.py`（相对 time-tracking 目录为 `../scripts/jwy_tracking.py`）的 `missing_tracking_ids(state, recorded_ids)` —— 该模块是辅助库而非命令行脚本，不能直接执行。
+
+## 身份与凭据
 身份验证查询 MySQL `agent_team_roster`，仅允许 `JWY` 精确匹配成员；数据库配置须在本机填写，不得在对话或发布包中收集、输出或保存凭据。
+若本机尚未初始化 MySQL 配置，AI 应提示运行 `python scripts/init_mysql_config.py --biz-line 泾渭云 --template`（生成空模板 + 备注说明），由测试人员按备注填写或找管理员获取，AI 不在对话中索要密码。
 """)
 
 
@@ -135,7 +169,7 @@ def _workbuddy_plugin() -> dict:
         "agentName": "jingweiyun-testing-expert",
         "displayName": {"en": "Jingweiyun Testing Expert", "zh": "泾渭云测试专家"},
         "profession": {"en": "Jingweiyun Functional Testing Expert", "zh": "泾渭云功能测试专家"},
-        "displayDescription": {"en": "[v1.0.0] Jingweiyun requirement-to-testcase workflow with time-saving tracking.", "zh": "【v1.0.0】覆盖需求确认、代码分析、脑图用例、DMP转换和归档，并以强制工时追踪量化泾渭云测试效能。"},
+        "displayDescription": {"en": "Jingweiyun requirement-to-testcase workflow with time-saving tracking.", "zh": "覆盖需求确认、代码分析、脑图用例、DMP转换归档，并以强制工时追踪量化泾渭云测试效能。"},
         "avatar": "avatars/expert.png",
         "categoryId": "10-ProjectQuality",
         "defaultInitPrompt": {"zh": "开始泾渭云需求测试流程", "en": "Start the Jingweiyun testing workflow"},
@@ -165,7 +199,13 @@ maxTurns: 100
 
 每个步骤前必须阅读 Skill 指定的 prompt。完成实际执行的 P1、P2、P3-1/2/3、P4、P5 后，立即采集并确认节省工时，完成记录前禁止展示下一步。Step4 仅在 Step3-选项1或2完成后执行。所有输出使用中文，明确区分事实、推断、建议和待确认项。
 """)
-    _write(package / "avatars" / ".gitkeep", "")
+    avatars = package / "avatars"
+    avatars.mkdir(parents=True, exist_ok=True)
+    _write(avatars / ".gitkeep", "")
+    # 头像随核心包 assets 分发，构建时还原到专家包 avatars/ （避免重建后头像丢失）
+    avatar_source = package / "skills" / VSCODE_NAME / "assets" / "expert.png"
+    if avatar_source.exists():
+        shutil.copy2(avatar_source, avatars / "expert.png")
     _write(package / "README.md", "# 泾渭云测试专家 v1.0.0\n\nWorkBuddy 专家包。将整个目录交由专家包管理器校验、注册和打包。数据库与 Confluence 凭据仅在本机配置，不随包分发。\n")
 
 
