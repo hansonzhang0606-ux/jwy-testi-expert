@@ -31,7 +31,8 @@
 作用：该行工时字段归零（time_saved_hours/time_saved_pd/total_hours=0）+ remark 打 `[作废]` 前缀 + 写入本机作废名单 `voided.json`；后续同步会跳过其 record_key，**不会被重新写回**。统计汇总按 SUM 计算时该行贡献为 0，等同删除。如需物理删除，请提示联系数据库管理员。
 
 ## 采集口径
-“采纳”取该步骤参考范围中间值；两次未提供实际值则记录中间值并备注“用户未反馈，采用参考中间值”。跨步骤补录只使用 `scripts/jwy_tracking.py` 从 `.jwy_pipeline_state.json` 计算的 eligible 集合，不得补录本次未执行的可选步骤或未选择的 Step3 分支。
+“采纳”取该步骤参考范围中间值；两次未提供实际值则记录中间值并备注“用户未反馈，采用参考中间值”。
+跨步骤补录只认 `.jwy_pipeline_state.json` 中 `tracking.eligible` 的 P 标识集合，不得补录本次未执行的可选步骤或未选择的 Step3 分支；需与已记录集合做差集时，可调用 skill 根目录下的 `scripts/jwy_tracking.py`（相对 time-tracking 目录为 `../scripts/jwy_tracking.py`）的 `missing_tracking_ids(state, recorded_ids)` —— 该模块是辅助库而非命令行脚本，不能直接执行。
 
 ## 身份与凭据
 身份验证查询 MySQL `agent_team_roster`，仅允许 `JWY` 精确匹配成员；数据库配置须在本机填写，不得在对话或发布包中收集、输出或保存凭据。
