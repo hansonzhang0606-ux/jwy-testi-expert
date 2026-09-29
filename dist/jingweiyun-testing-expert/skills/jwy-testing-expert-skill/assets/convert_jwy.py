@@ -17,7 +17,7 @@ JWY 专用 XMind(经典 content.xml) -> DMP Excel 转换器。
   - caseGroup(功能路径) = 版本衍生"年-年月-年月日" + 故事名称(全表同一值)
   - manager(责任人) = 当前会话测试人员
   - version(适用版本) = 测试人员告知的 V...
-  - team/product/modulePath = 固定值(金蝶征信，沿用模板示例)
+  - team/product/modulePath = 固定值({部署配置}，沿用模板示例)
   - name 自动加"验证"前缀
 """
 import argparse, sys, zipfile, re
@@ -165,9 +165,9 @@ if __name__ == "__main__":
     ap.add_argument("--version", required=True)
     ap.add_argument("--manager", required=True)
     ap.add_argument("--story-name", required=True)
-    ap.add_argument("--team", default="金蝶征信")
-    ap.add_argument("--product", default="金蝶征信")
-    ap.add_argument("--module-path", default="金蝶征信")
+    ap.add_argument("--team", default="{部署配置}")
+    ap.add_argument("--product", default="{部署配置}")
+    ap.add_argument("--module-path", default="{部署配置}")
     args = ap.parse_args()
     n, cg = convert(args.xmind, args.template, args.output, args.version,
                     args.manager, args.story_name, args.team, args.product, args.module_path)
