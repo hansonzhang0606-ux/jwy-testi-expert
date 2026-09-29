@@ -11,7 +11,8 @@
 | 资源 | 路径（相对 `skills/`） | 作用 |
 |------|----------------------|------|
 | 团队 DMP 模板 | `assets/dmp_template.xlsx` | 14 列标准模板，前 4 行样式权威来源 |
-| 经典 XMind 转换器 | `assets/convert_jwy.py` | 独立脚本，专门处理经典 XMind（`content.xml`，Step3-选项1 产出） |
+
+> 说明：早期曾附带过一份独立的经典 XMind 转换器 `assets/convert_jwy.py`。它只是 `scripts/convert.py` 的功能子集（且必须显式传 `--template` 才能运行），为避免两份脚本逻辑漂移，已统一删除；**所有转换统一走 `scripts/convert.py`**，它同时支持 XMind Zen 与经典 XMind。
 
 **模板查找顺序**（`scripts/convert.py` 的 `find_template`）：
 1. 输出目录的 `excel模板.xlsx`
