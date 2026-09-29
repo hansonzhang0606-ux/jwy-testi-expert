@@ -3,8 +3,8 @@
 """
 工时记录「软作废」工具 v1.0（通用多业务线版）
 
-背景: 同步账号（如 appuser）通常只有 SELECT/INSERT/UPDATE，没有 DELETE 权限
-      （报错 1142: DELETE command denied）。一旦误记录或产生测试数据，无法物理删除。
+背景: 当同步账号暂无 DELETE 权限（MySQL 1142: DELETE command denied）时，
+      误记录或测试数据无法物理删除。即使已授权 DELETE，软作废也可作为审计手段保留痕迹。
 方案: 软作废 —— 把该条记录的工时字段归零并在 remark 打 [作废] 标记，
       同时把其 record_key 写入本机作废名单 voided.json；
       sync_to_mysql.py 同步时会跳过作废名单中的 record_key，避免被重新 upsert "复活"。
@@ -19,6 +19,7 @@
   # 试运行，只看不写
   python void_time_record.py --id 3245 --dry-run
 
+建议: 优先联系数据库管理员执行 DELETE 物理删除；暂无权限或需审计留痕时使用本脚本。
 副作用: 若该记录在本地 records.jsonl 中仍存在，会一并从本地移除（--keep-local 可保留）。
 """
 

@@ -8,8 +8,8 @@
 
 本 Skill 已将团队 DMP 模板与经典 XMind 转换器**内嵌**于专家包，避免依赖外部仓库分发：
 
-| 资源 | 路径（相对 `skills/jwy-testing-expert-skill/`） | 作用 |
-|------|-----------------------------------------------|------|
+| 资源 | 路径（相对 `skills/`） | 作用 |
+|------|----------------------|------|
 | 团队 DMP 模板 | `assets/dmp_template.xlsx` | 14 列标准模板，前 4 行样式权威来源 |
 | 经典 XMind 转换器 | `assets/convert_jwy.py` | 独立脚本，专门处理经典 XMind（`content.xml`，Step3-选项1 产出） |
 

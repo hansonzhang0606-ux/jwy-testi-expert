@@ -18,6 +18,7 @@ register_sync_tasks.py — 自动注册 time-tracking 定时同步任务（自�
 """
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -27,6 +28,32 @@ SCHEDULES = [
     ("午", "12:00"),
     ("晚", "18:00"),
 ]
+
+
+def resolve_persistent_bat_path(current_bat_path):
+    """优先使用持久安装路径（plugins/marketplaces/my-experts/plugins/...），避免 cache/1.0.0 版本升级后任务失效。
+
+    当脚本在 cache 中运行时（如 WorkBuddy 解压的 1.0.0 缓存），尝试推断并切换到
+    my-experts 持久安装路径；若持久路径不存在或当前已在持久路径，则返回当前路径。
+    """
+    norm = os.path.normpath(current_bat_path)
+    if "marketplaces" + os.sep + "my-experts" + os.sep + "plugins" in norm:
+        return norm
+    # 匹配 plugins\cache\my-experts\<expert-id>\<version>\<remainder>
+    m = re.search(
+        r"plugins" + re.escape(os.sep) + r"cache" + re.escape(os.sep) + r"my-experts" + re.escape(os.sep) + r"([^" + re.escape(os.sep) + r"]+)" + re.escape(os.sep) + r"([^" + re.escape(os.sep) + r"]+)" + re.escape(os.sep) + r"(.*)$",
+        norm,
+    )
+    if not m:
+        return norm
+    expert_id, _version, remainder = m.groups()
+    home = os.path.expanduser("~")
+    candidate = os.path.join(
+        home, ".workbuddy", "plugins", "marketplaces", "my-experts", "plugins", expert_id, remainder
+    )
+    if os.path.isfile(candidate):
+        return candidate
+    return norm
 
 
 def run(cmd):
@@ -69,7 +96,7 @@ def main():
     args = ap.parse_args()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    bat_path = os.path.join(script_dir, "sync_task.bat")
+    bat_path = resolve_persistent_bat_path(os.path.join(script_dir, "sync_task.bat"))
     if not os.path.isfile(bat_path):
         print("[ERROR] 未找到同目录的 sync_task.bat：%s" % bat_path)
         print("        请确认 register_sync_tasks.py 与 sync_task.bat 处于同一 scripts 目录。")
@@ -77,6 +104,8 @@ def main():
 
     print("[INFO] scripts 目录: %s" % script_dir)
     print("[INFO] 目标 bat    : %s" % bat_path)
+    if bat_path != os.path.join(script_dir, "sync_task.bat"):
+        print("[INFO] 已切换至持久安装路径，避免 cache 版本升级后任务失效。")
     print("[INFO] 业务线      : %s" % args.biz_line)
     print("[INFO] 计划注册 3 个每日任务(09:00/12:00/18:00)，已存在自动跳过...\n")
 

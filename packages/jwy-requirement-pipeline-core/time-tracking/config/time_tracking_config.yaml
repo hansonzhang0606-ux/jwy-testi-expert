@@ -10,7 +10,7 @@
 #    否则业务线编码无法正确映射、数据会落错目录。
 # AI 调用脚本时也可通过 --biz-line 参数临时覆盖。
 
-default_biz_line: ""
+default_biz_line: "泾渭云"
 
 # ============================================================
 # 存储模式
@@ -63,40 +63,40 @@ excel:
 # 员工可采纳参考值，也可自行反馈实际节省时间
 # ============================================================
 reference_times:
-  - step_code: "01"
-    step_name: "文档整理"
-    min_hours: 2.0
-    max_hours: 4.0
-    unit: "小时"
-    basis: "按文档数量浮动，5个以上文档取上限"
+  - step_code: "P1"
+    step_name: "需求确认"
+    min_hours: 2
+    max_hours: 4
 
-  - step_code: "02"
-    step_name: "需求评审"
-    min_hours: 2.0
-    max_hours: 3.0
-    unit: "小时"
-    basis: "6维度评审（完整性/一致性/边界/异常/优先级/可测性）"
+  - step_code: "P2"
+    step_name: "代码分析"
+    min_hours: 2
+    max_hours: 5
 
-  - step_code: "04"
-    step_name: "生成测试点"
-    min_hours: 3.0
-    max_hours: 5.0
-    unit: "小时"
-    basis: "按需求复杂度浮动，涉及多系统交互取上限"
+  - step_code: "P3-1"
+    step_name: "测试脑图生成"
+    min_hours: 3
+    max_hours: 5
 
-  - step_code: "06"
-    step_name: "用例细化"
-    min_hours: 4.0
-    max_hours: 8.0
-    unit: "小时"
-    basis: "按用例数量浮动，100条以上取上限，可用人天"
+  - step_code: "P3-2"
+    step_name: "接口脑图生成"
+    min_hours: 3
+    max_hours: 6
 
-  - step_code: "07"
-    step_name: "知识入库"
-    min_hours: 1.0
-    max_hours: 2.0
-    unit: "小时"
-    basis: "总结+差异对比+精华提炼+归档"
+  - step_code: "P3-3"
+    step_name: "DMP用例脑图生成"
+    min_hours: 4
+    max_hours: 8
+
+  - step_code: "P4"
+    step_name: "DMP Excel转换"
+    min_hours: 2
+    max_hours: 4
+
+  - step_code: "P5"
+    step_name: "Confluence归档"
+    min_hours: 0.5
+    max_hours: 1
 
 # ============================================================
 # 强制规则

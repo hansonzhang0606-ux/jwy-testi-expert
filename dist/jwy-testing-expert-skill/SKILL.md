@@ -12,4 +12,4 @@ description: |
 
 完成 P1/P2/P3-1~3/P4/P5 任一实际步骤后，必须先完成 `time-tracking/prompts/time_tracking.md` 定义的工时采集，才可进入下一步。仅补录当前状态文件中已完成的追踪步骤。
 
-工时按「提交即同步（A）+ 提示词回补（B）」自动进入 MySQL `agent_time_tracking` 表，无需等待定时任务；录错时用 `void_time_record.py` 软作废，不要 `DELETE`（同步账号无 DELETE 权限）。
+工时按「提交即同步（A）+ 提示词回补（B）」自动进入 MySQL `agent_time_tracking` 表，无需等待定时任务；录错时用 `void_time_record.py` 软作废（或联系管理员执行 DELETE）。
