@@ -156,6 +156,24 @@ def read_jsonl_records(biz_line):
     return records
 
 
+def get_voided_path(biz_line):
+    return os.path.join(get_data_dir(biz_line), "voided.json")
+
+
+def load_voided_keys(biz_line):
+    """读取本机作废名单（record_key 集合）。由 void_time_record.py 写入。
+    同步时跳过这些记录，避免已软作废的记录被 upsert "复活"。"""
+    p = get_voided_path(biz_line)
+    if not os.path.exists(p):
+        return set()
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {v.get("record_key") for v in (data.get("voided") or []) if v.get("record_key")}
+    except Exception:
+        return set()
+
+
 def record_key_exists(conn, table, record_key):
     """判断 record_key 是否已存在于目标表（区分'同一条记录重同步'与'新记录'）"""
     sql = f"SELECT COUNT(*) AS cnt FROM {table} WHERE record_key=%s"
@@ -295,11 +313,22 @@ def main():
     records = read_jsonl_records(biz_line)
     if args.since:
         records = [r for r in records if (r.get("date") or "") >= args.since]
+
+    # 过滤本机已软作废的记录（void_time_record.py 维护 voided.json），避免被重新 upsert "复活"
+    voided_keys = load_voided_keys(biz_line)
+    skipped_voided = 0
+    if voided_keys:
+        before = len(records)
+        records = [r for r in records
+                   if compute_record_key(r, biz_line_code) not in voided_keys]
+        skipped_voided = before - len(records)
+
     print("=" * 62)
     print(f"时间记录同步到 MySQL — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 62)
     print(f"业务线: {biz_line} ({biz_line_code})")
-    print(f"本地记录: {len(records)} 条")
+    print(f"本地记录: {len(records)} 条" +
+          (f"（已过滤软作废 {skipped_voided} 条）" if skipped_voided else ""))
 
     if not records:
         print("✅ 没有待同步的记录。")
