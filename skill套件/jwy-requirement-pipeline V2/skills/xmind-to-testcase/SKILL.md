@@ -2,6 +2,33 @@
 
 将 XMind 需求文档转换为 Excel 测试用例文件。
 
+---
+
+## 内嵌资源（其他测试人员无需 GitHub 即可复用）
+
+本 Skill 已将团队 DMP 模板与经典 XMind 转换器**内嵌**于专家包，避免依赖外部仓库分发：
+
+| 资源 | 路径（相对 `skills/`） | 作用 |
+|------|----------------------|------|
+| 团队 DMP 模板 | `assets/dmp_template.xlsx` | 14 列标准模板，前 4 行样式权威来源 |
+| 经典 XMind 转换器 | `assets/convert_jwy.py` | 独立脚本，专门处理经典 XMind（`content.xml`，Step3-选项1 产出） |
+
+**模板查找顺序**（`scripts/convert.py` 的 `find_template`）：
+1. 输出目录的 `excel模板.xlsx`
+2. 输出目录的 `模板 - 副本.xlsx`
+3. **本 Skill 内嵌 `assets/dmp_template.xlsx`**（兜底，确保任何测试人员在空白目录也能跑通）
+4. 输出目录任意 `*.xlsx`
+
+> 分发专家包时，上述 `assets/` 目录会随包一起复制；其他测试人员首次使用 Step4 时，即使本地无模板，也会自动回退到内嵌模板，无需从 GitHub 拉取。
+
+**支持的 XMind 格式**（升级后的 `scripts/convert.py`）：
+- XMind Zen：`content.json`（测试点/预期结果 节点对，或通用叶子节点）
+- 经典 XMind：`content.xml`（L1 模块 / L2 子模块 / L3 条件 / L4 数据 / L5 预期；「需求疑问点(待确认)」分支自动跳过）
+
+> 历史说明：原 `scripts/convert.py` 仅支持 XMind Zen，无法解析 Step3-选项1 产出的经典 XMind（表现为 `RuntimeError: 仅支持 XMind Zen`）。现已内置经典格式解析，可直接复用。
+
+---
+
 ## 元数据
 
 - **名称**: xmind-to-testcase

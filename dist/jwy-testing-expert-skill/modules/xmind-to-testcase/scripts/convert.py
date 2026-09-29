@@ -2,119 +2,159 @@
 """
 xmind-to-testcase 参考实现：基于团队 DMP 模板生成 Excel。
 
+支持两种 XMind 格式：
+  A) XMind Zen  -> content.json（节点 children.attached；测试点/预期结果 或 叶子节点）
+  B) 经典 XMind -> content.xml（urn:xmind:xmap:xmlns:content:2.0；
+                    L1=模块 / L2=子模块 / L3=条件 / L4=数据 / L5=预期）
+Step3-选项1(xmind-testcase) 产出经典格式，本实现优先兼容。
+
 关键约束（来自 SKILL.md）：
-- 生成的 Excel 必须基于团队 DMP 模板文件（默认 excel模板.xlsx / 模板 - 副本.xlsx）。
-- 模板「前 4 行」（标题/说明/英文列名/灰色中文说明）原样保留，
-  包括字体、颜色、填充、对齐、边框——绝不重建或覆盖。
+- 生成的 Excel 必须基于团队 DMP 模板文件。
+- 模板「前 4 行」原样保留（字体/颜色/填充/对齐/边框）。
 - 仅从第 5 行起写入数据，通过「第 3 行」英文列名建立 col_map 按名映射。
 - 固定值：team/product/modulePath={部署配置}，manager={部署配置}，autoState=否，source 留空；
   name 自动加「验证」前缀。
 
+内嵌资源（其他测试人员无需 GitHub 即可复用）：
+- 本 Skill 的 assets/dmp_template.xlsx 为团队 DMP 模板默认回退。
+- 经典 XMind 的独立转换器亦可单独调用 assets/convert_jwy.py。
+
 用法：
-  python convert.py --xmind <file.xmind> --template <excel模板.xlsx> \
-        --case-group "..." --version "V..." --manager "{部署配置}" --output <out.xlsx>
+  python convert.py --xmind <file.xmind> --template <可选> \
+        --case-group "..." --version "V..." --manager "..." --output <out.xlsx>
+未提供 --template 时按序查找：输出目录的 excel模板.xlsx / 模板 - 副本.xlsx / 本 Skill assets/dmp_template.xlsx。
 """
 import argparse, json, os, zipfile, glob
+import xml.etree.ElementTree as ET
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
+NS = "{urn:xmind:xmap:xmlns:content:2.0}"
+
 # ---------- 1. 解析 XMind ----------
+def _parse_zen(path):
+    """XMind Zen (content.json)。返回 list[{module, scenario, tp, er}]"""
+    z = zipfile.ZipFile(path)
+    data = json.loads(z.read("content.json"))
+    root = data[0]["rootTopic"]
+    recs = []
+    def walk(n, path=None):
+        if path is None:
+            path = []
+        title = n.get("title", "")
+        cur = path + [title]
+        ch = n.get("children", {}).get("attached", [])
+        if len(ch) == 2 and ch[0].get("title", "").startswith("测试点") and ch[1].get("title", "").startswith("预期结果"):
+            tp = ch[0]["title"][len("测试点："):].strip()
+            er = ch[1]["title"][len("预期结果："):].strip()
+            recs.append({"module": " / ".join(path), "scenario": title, "tp": tp, "er": er})
+            return
+        if not ch:
+            recs.append({"module": " / ".join(path[:-1]), "scenario": title, "tp": title, "er": "（按需求描述预期）"})
+            return
+        for k in ch:
+            walk(k, cur)
+    walk(root)
+    return recs
+
+
+def _title(e):
+    t = e.find(f"{NS}title")
+    return t.text if t is not None else ""
+
+
+def _kids(e):
+    ch = e.find(f"{NS}children")
+    if ch is None:
+        return []
+    ts = ch.find(f"{NS}topics")
+    if ts is None:
+        return []
+    return ts.findall(f"{NS}topic")
+
+
+def _parse_classic(path):
+    """经典 XMind (content.xml)。结构：
+    L1=模块, L2=子模块, L3=条件(scenario), L4=数据(tp), L5=预期(er)。
+    「需求疑问点(待确认)」分支为说明性叶子，整体跳过，不产用例。"""
+    z = zipfile.ZipFile(path)
+    root = ET.fromstring(z.read("content.xml").decode("utf-8"))
+    sheet = root.find(f"{NS}sheet")
+    rt = sheet.find(f"{NS}topic")
+    recs = []
+    def walk(e, depth, mod_path):
+        tg = _title(e)
+        if depth == 1 and tg == "需求疑问点(待确认)":
+            return
+        ks = _kids(e)
+        if depth == 3:
+            data = _title(ks[0]) if len(ks) >= 1 else ""
+            expect = _title(_kids(ks[0])[0]) if (len(ks) >= 1 and _kids(ks[0])) else ""
+            recs.append({"module": " / ".join(mod_path), "scenario": tg, "tp": data, "er": expect})
+            return
+        for c in ks:
+            walk(c, depth + 1, mod_path + ([tg] if depth <= 2 else []))
+    for l1 in _kids(rt):
+        walk(l1, 1, [])
+    return recs
+
+
 def parse_xmind(path):
-    """优先 content.json（XMind Zen），回退 content.xml。
-    支持两种结构：
-      A) 测试点/预期结果 节点对（本流水线产出）
-      B) 通用叶子节点（需求文档脑图）
-    返回 list[{module, scenario, tp, er}]"""
     z = zipfile.ZipFile(path)
     names = z.namelist()
     if "content.json" in names:
-        data = json.loads(z.read("content.json"))
-        root = data[0]["rootTopic"]
-        recs = []
-        def walk(n, path=None):
-            if path is None: path = []
-            title = n.get("title", "")
-            cur = path + [title]
-            ch = n.get("children", {}).get("attached", [])
-            if len(ch) == 2 and ch[0].get("title", "").startswith("测试点") and ch[1].get("title", "").startswith("预期结果"):
-                tp = ch[0]["title"][len("测试点："):].strip()
-                er = ch[1]["title"][len("预期结果："):].strip()
-                recs.append({"module": " / ".join(path), "scenario": title, "tp": tp, "er": er})
-                return
-            if not ch:  # 叶子节点 -> 单条用例
-                recs.append({"module": " / ".join(path[:-1]), "scenario": title,
-                             "tp": title, "er": "（按需求描述预期）"})
-                return
-            for k in ch:
-                walk(k, cur)
-        walk(root)
-        return recs
-    raise RuntimeError("仅支持 XMind Zen (content.json) 格式")
+        return _parse_zen(path)
+    if "content.xml" in names:
+        return _parse_classic(path)
+    raise RuntimeError("XMind 文件须含 content.json(XMind Zen) 或 content.xml(经典 XMind)")
+
 
 # ---------- 2. 用例级别 ----------
 def case_level(scenario):
-    if any(t in scenario for t in ["解析-空格", "解析-大小写", "解析-去重", "解析-异常值"]):
-        return "P2"
-    if any(t in scenario for t in ["不展示-其他clientId", "命中-ALL大小写", "命中-ALL与具体取并集",
-                                    "范围-其他H5", "范围-Web端", "配置-热生效", "回归-存量客户"]):
+    if any(t in scenario for t in ["异常", "错误", "失败", "无效", "为空", "缺失"]):
         return "P1"
+    if any(t in scenario for t in ["边界", "临界", "最大", "最小", "重复", "超长"]):
+        return "P2"
     return "P0"
 
+
 def pre_cond(module):
-    if "五、配置生效与回归" in module:
-        return "1. 字典配置中心支持热更新，无需重启/重新部署\n2. 存在已配置 clientId 的存量客户\n3. 纳税H5 登录页可正常访问"
-    if "一、字典配置" in module:
-        return "1. 字典 LOGIN_ROLE_TIPS_CLIENTIDS 已按用例配置\n2. 纳税H5 登录页可正常访问\n3. 相应 clientId 的测试账号可登录"
-    if "二、页面范围隔离" in module:
-        return "1. 字典已配置命中 clientId\n2. 纳税H5 登录页与对照页面（其他 H5 / Web 端）均可访问\n3. 测试账号可登录"
-    return "1. 测试环境已部署\n2. 相关依赖服务正常运行"
+    return "1. 测试环境已部署\n2. 相关依赖服务正常运行\n3. 测试账号与测试数据就绪"
+
 
 # ---------- 2.1 步骤化 input / output（每条用例至少 3 个步骤） ----------
 def _split_items(text):
-    """将测试点 / 预期结果文本拆分为多个步骤项（按换行 / 分号 / 句号切分，过滤空项）。"""
     if not text:
         return []
     text = str(text).replace("；", ";").replace("\n", ";")
     items = [t.strip(" 。.；;") for t in text.split(";")]
     return [t for t in items if t]
 
-def build_io(scenario, tp, er):
-    """构造 input（操作步骤）与 output（预期结果）。
 
-    规则：两条列均**至少 3 个编号步骤**且步数一致（一一对应）。
-    优先使用 XMind 测试点 / 预期结果文本作为中间步骤，
-    不足 3 步时用规范的通用步骤补全至 3 步。
-    """
+def build_io(scenario, tp, er):
     tp_items = _split_items(tp)
     er_items = _split_items(er)
-
     inp_steps, out_steps = [], []
-
     # 第 1 步：进入页面 / 准备数据（通用）
     inp_steps.append("进入对应功能页面，准备测试账号与测试数据")
     out_steps.append("页面正常加载，无报错，测试数据就绪")
-
     # 中间步：来自测试点 / 预期结果，一一对应
     n = max(len(tp_items), len(er_items))
     for i in range(n):
-        t = tp_items[i] if i < len(tp_items) else "复核上述操作（第%d次）" % (i + 1)
+        t = tp_items[i] if i < len(tp_items) else "复核上述操作"
         e = er_items[i] if i < len(er_items) else "系统返回符合预期"
         inp_steps.append("执行操作：%s" % t)
         out_steps.append("预期结果：%s" % e)
-
     # 末步：通用检查（保证至少 3 步）
     inp_steps.append("检查系统响应、页面展示与数据落库结果")
     out_steps.append("系统与页面展示与预期一致，数据正确落库")
-
-    # 极端情况（tp / er 均空）兜底补齐到 3 步
     while len(inp_steps) < 3:
         inp_steps.append("执行测试用例步骤并观察结果")
         out_steps.append("结果符合预期")
-
-    # 编号
     inp = "\n".join("%d. %s" % (i + 1, s) for i, s in enumerate(inp_steps))
     out = "\n".join("%d. %s" % (i + 1, s) for i, s in enumerate(out_steps))
     return inp, out
+
 
 # ---------- 3. 主流程 ----------
 def convert(xmind, template, output, case_group, version, manager):
@@ -165,13 +205,27 @@ def convert(xmind, template, output, case_group, version, manager):
     wb.save(output)
     return len(recs)
 
-def find_template(xmind_dir):
+
+def find_template(xmind_path):
+    """模板查找顺序：
+    1) 输出目录 excel模板.xlsx
+    2) 输出目录 模板 - 副本.xlsx
+    3) 本 Skill 内嵌 assets/dmp_template.xlsx（无需 GitHub）
+    4) 输出目录任意 *.xlsx
+    """
+    xdir = os.path.dirname(os.path.abspath(xmind_path))
     for name in ("excel模板.xlsx", "模板 - 副本.xlsx"):
-        p = os.path.join(xmind_dir, name)
+        p = os.path.join(xdir, name)
         if os.path.exists(p):
             return p
-    cands = glob.glob(os.path.join(xmind_dir, "*.xlsx"))
+    here = os.path.dirname(os.path.abspath(__file__))
+    # scripts/ -> xmind-to-testcase/ -> modules/ -> jwy-testing-expert-skill/assets/
+    embedded = os.path.normpath(os.path.join(here, "..", "..", "..", "assets", "dmp_template.xlsx"))
+    if os.path.exists(embedded):
+        return embedded
+    cands = glob.glob(os.path.join(xdir, "*.xlsx"))
     return cands[0] if cands else None
+
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -183,13 +237,12 @@ if __name__ == "__main__":
     ap.add_argument("--manager", default="{部署配置}")
     args = ap.parse_args()
 
-    xdir = os.path.dirname(os.path.abspath(args.xmind))
-    template = args.template or find_template(xdir)
+    template = args.template or find_template(args.xmind)
     if not template or not os.path.exists(template):
-        raise SystemExit("未找到团队 DMP 模板（excel模板.xlsx / 模板 - 副本.xlsx），请提供 --template")
+        raise SystemExit("未找到团队 DMP 模板，请提供 --template")
     if args.output is None:
         base = os.path.splitext(os.path.basename(args.xmind))[0]
-        args.output = os.path.join(xdir, base + "_测试用例.xlsx")
+        args.output = os.path.join(os.path.dirname(os.path.abspath(args.xmind)), base + "_测试用例.xlsx")
 
     n = convert(args.xmind, template, args.output, args.case_group, args.version, args.manager)
     print(f"已生成 {n} 条用例 -> {args.output}")

@@ -15,15 +15,54 @@ xmind-to-testcase 参考实现：基于团队 DMP 模板生成 Excel。
         --case-group "..." --version "V..." --manager "余萍" --output <out.xlsx>
 """
 import argparse, json, os, zipfile, glob
+import xml.etree.ElementTree as ET
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
+NS = "{urn:xmind:xmap:xmlns:content:2.0}"
+
 # ---------- 1. 解析 XMind ----------
+def _title(e):
+    t = e.find(f"{NS}title")
+    return t.text if t is not None else ""
+
+def _kids(e):
+    ch = e.find(f"{NS}children")
+    if ch is None:
+        return []
+    ts = ch.find(f"{NS}topics")
+    if ts is None:
+        return []
+    return ts.findall(f"{NS}topic")
+
+def _parse_classic(path):
+    """经典 XMind (content.xml)。结构：
+    L1=模块, L2=子模块, L3=条件(scenario), L4=数据(tp), L5=预期(er)。
+    「需求疑问点(待确认)」分支为说明性叶子，整体跳过，不产用例。"""
+    z = zipfile.ZipFile(path)
+    root = ET.fromstring(z.read("content.xml").decode("utf-8"))
+    sheet = root.find(f"{NS}sheet")
+    rt = sheet.find(f"{NS}topic")
+    recs = []
+    def walk(e, depth, mod_path):
+        tg = _title(e)
+        if depth == 1 and tg == "需求疑问点(待确认)":
+            return
+        ks = _kids(e)
+        if depth == 3:
+            data = _title(ks[0]) if len(ks) >= 1 else ""
+            expect = _title(_kids(ks[0])[0]) if (len(ks) >= 1 and _kids(ks[0])) else ""
+            recs.append({"module": " / ".join(mod_path), "scenario": tg, "tp": data, "er": expect})
+            return
+        for c in ks:
+            walk(c, depth + 1, mod_path + ([tg] if depth <= 2 else []))
+    for l1 in _kids(rt):
+        walk(l1, 1, [])
+    return recs
+
 def parse_xmind(path):
-    """优先 content.json（XMind Zen），回退 content.xml。
-    支持两种结构：
-      A) 测试点/预期结果 节点对（本流水线产出）
-      B) 通用叶子节点（需求文档脑图）
+    """优先 content.json（XMind Zen），回退 content.xml（经典）。
+    经典格式由 Step3-选项1(xmind-testcase) 产出。
     返回 list[{module, scenario, tp, er}]"""
     z = zipfile.ZipFile(path)
     names = z.namelist()
@@ -49,7 +88,9 @@ def parse_xmind(path):
                 walk(k, cur)
         walk(root)
         return recs
-    raise RuntimeError("仅支持 XMind Zen (content.json) 格式")
+    if "content.xml" in names:
+        return _parse_classic(path)
+    raise RuntimeError("XMind 文件须含 content.json(XMind Zen) 或 content.xml(经典 XMind)")
 
 # ---------- 2. 用例级别 ----------
 def case_level(scenario):
@@ -166,10 +207,21 @@ def convert(xmind, template, output, case_group, version, manager):
     return len(recs)
 
 def find_template(xmind_dir):
+    """模板查找顺序：
+    1) 输出目录 excel模板.xlsx
+    2) 输出目录 模板 - 副本.xlsx
+    3) 本 Skill 内嵌 assets/dmp_template.xlsx（无需 GitHub）
+    4) 输出目录任意 *.xlsx
+    """
     for name in ("excel模板.xlsx", "模板 - 副本.xlsx"):
         p = os.path.join(xmind_dir, name)
         if os.path.exists(p):
             return p
+    here = os.path.dirname(os.path.abspath(__file__))
+    # scripts/ -> xmind-to-testcase/ -> skills/ -> assets/
+    embedded = os.path.normpath(os.path.join(here, "..", "..", "assets", "dmp_template.xlsx"))
+    if os.path.exists(embedded):
+        return embedded
     cands = glob.glob(os.path.join(xmind_dir, "*.xlsx"))
     return cands[0] if cands else None
 
@@ -186,7 +238,7 @@ if __name__ == "__main__":
     xdir = os.path.dirname(os.path.abspath(args.xmind))
     template = args.template or find_template(xdir)
     if not template or not os.path.exists(template):
-        raise SystemExit("未找到团队 DMP 模板（excel模板.xlsx / 模板 - 副本.xlsx），请提供 --template")
+        raise SystemExit("未找到团队 DMP 模板，请提供 --template")
     if args.output is None:
         base = os.path.splitext(os.path.basename(args.xmind))[0]
         args.output = os.path.join(xdir, base + "_测试用例.xlsx")
