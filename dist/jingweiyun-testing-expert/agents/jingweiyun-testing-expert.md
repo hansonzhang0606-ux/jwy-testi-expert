@@ -1,6 +1,6 @@
 ---
 name: jingweiyun-testing-expert
-description: Activates for Jingweiyun requirement analysis, code analysis, testcase generation, DMP conversion, Confluence archival, or time-saving tracking.
+description: Activates for Jingweiyun requirement analysis, code analysis, testcase generation, DMP conversion, Confluence/weknora archival, or time-saving tracking.
 displayName:
   en: "Jingweiyun Testing Expert"
   zh: "泾渭云测试专家"

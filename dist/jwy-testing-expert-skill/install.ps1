@@ -120,45 +120,42 @@ if ($samePath) {
     Write-Host "      $destDir" -ForegroundColor DarkGray
 }
 
-# 5. 创建/更新 marketplace.json
-$needManifest = $true
-if (Test-Path $destManifestPath) {
+# 5. 创建/更新 marketplace.json（版本升级时同步 description / 支持 changelog）
+if (-not (Test-Path $destManifestDir)) { New-Item -ItemType Directory -Path $destManifestDir -Force | Out-Null }
+$pluginJsonPath = Join-Path $destDir ".codebuddy-plugin\plugin.json"
+$pluginDesc = "Jingweiyun Testing Expert"
+if (Test-Path $pluginJsonPath) {
     try {
-        $existingManifest = Get-Content $destManifestPath -Encoding UTF8 -Raw | ConvertFrom-Json
-        $found = $false
-        foreach ($p in $existingManifest.plugins) { if ($p.name -eq $expertId) { $found = $true; break } }
-        if ($found) { $needManifest = $false }
+        $pj = Get-Content $pluginJsonPath -Encoding UTF8 -Raw | ConvertFrom-Json
+        if ($pj.description) { $pluginDesc = $pj.description }
     } catch {}
 }
-if ($needManifest) {
-    if (-not (Test-Path $destManifestDir)) { New-Item -ItemType Directory -Path $destManifestDir -Force | Out-Null }
-    $pluginJsonPath = Join-Path $destDir ".codebuddy-plugin\plugin.json"
-    $pluginDesc = "Jingweiyun Testing Expert"
-    if (Test-Path $pluginJsonPath) {
-        try {
-            $pj = Get-Content $pluginJsonPath -Encoding UTF8 -Raw | ConvertFrom-Json
-            if ($pj.description) { $pluginDesc = $pj.description }
-        } catch {}
-    }
-    $pluginEntry = @{
-        name = $expertId
-        source = "./plugins/$expertId"
-        description = $pluginDesc
-    }
-    if (Test-Path $destManifestPath) {
-        try {
-            $manifest = Get-Content $destManifestPath -Encoding UTF8 -Raw | ConvertFrom-Json
-            $manifest.plugins = @($manifest.plugins) + @($pluginEntry)
-        } catch {
-            $manifest = @{ name = "my-experts"; description = "my-experts marketplace (auto-generated)"; plugins = @($pluginEntry) }
+$pluginEntry = @{
+    name = $expertId
+    source = "./plugins/$expertId"
+    description = $pluginDesc
+}
+if (Test-Path $destManifestPath) {
+    try {
+        $manifest = Get-Content $destManifestPath -Encoding UTF8 -Raw | ConvertFrom-Json
+        $foundIdx = -1
+        for ($i = 0; $i -lt $manifest.plugins.Count; $i++) {
+            if ($manifest.plugins[$i].name -eq $expertId) { $foundIdx = $i; break }
         }
-    } else {
+        if ($foundIdx -ge 0) {
+            $manifest.plugins[$foundIdx] = $pluginEntry
+        } else {
+            $manifest.plugins = @($manifest.plugins) + @($pluginEntry)
+        }
+    } catch {
         $manifest = @{ name = "my-experts"; description = "my-experts marketplace (auto-generated)"; plugins = @($pluginEntry) }
     }
-    $manifestJson = $manifest | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText($destManifestPath, $manifestJson, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "      marketplace.json 已创建/更新" -ForegroundColor DarkGray
+} else {
+    $manifest = @{ name = "my-experts"; description = "my-experts marketplace (auto-generated)"; plugins = @($pluginEntry) }
 }
+$manifestJson = $manifest | ConvertTo-Json -Depth 5
+[System.IO.File]::WriteAllText($destManifestPath, $manifestJson, [System.Text.UTF8Encoding]::new($false))
+Write-Host "      marketplace.json 已创建/更新" -ForegroundColor DarkGray
 
 # 5b. 写后校验：确认条目真的落在 marketplace.json 里（否则界面看不到）
 $manifestOk = $false

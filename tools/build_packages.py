@@ -86,6 +86,18 @@ def build_packages(core: Path, output: Path, packaging: Path | None = None) -> d
     shutil.copy2(packaging / "skill_entry.md", skill_destination / "SKILL.md")
     _write_workbuddy_files(workbuddy, core, packaging)
 
+    # 合并额外的 sibling skill：xmind-to-weknora
+    # 直接 copytree（不经过 _sanitize、不重命名为 modules），保留原始映射文本（如「金蝶征信」）
+    extra_skill = core.parents[1] / "packages" / "xmind-to-weknora"
+    if extra_skill.exists():
+        dest_skill = workbuddy / "skills" / "xmind-to-weknora"
+        if dest_skill.exists():
+            shutil.rmtree(dest_skill)
+        shutil.copytree(
+            extra_skill, dest_skill,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+
     _manifest(output)
     return {"workbuddy": str(workbuddy), "vscode": str(vscode)}
 

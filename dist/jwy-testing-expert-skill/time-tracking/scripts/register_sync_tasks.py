@@ -34,9 +34,9 @@ SCHEDULES = [
 
 
 def resolve_persistent_bat_path(current_bat_path):
-    """优先使用持久安装路径（plugins/marketplaces/my-experts/plugins/...），避免 cache/1.0.0 版本升级后任务失效。
+    """优先使用持久安装路径（plugins/marketplaces/my-experts/plugins/...），避免 cache/1.1.0 版本升级后任务失效。
 
-    当脚本在 cache 中运行时（如 WorkBuddy 解压的 1.0.0 缓存），尝试推断并切换到
+    当脚本在 cache 中运行时（如 WorkBuddy 解压的 1.1.0 缓存），尝试推断并切换到
     my-experts 持久安装路径；若持久路径不存在或当前已在持久路径，则返回当前路径。
     """
     norm = os.path.normpath(current_bat_path)

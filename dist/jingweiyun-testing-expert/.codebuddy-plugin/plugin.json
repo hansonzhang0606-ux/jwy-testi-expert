@@ -1,7 +1,7 @@
 {
   "name": "jingweiyun-testing-expert",
-  "version": "1.0.0",
-  "description": "Jingweiyun testing expert for the requirement-to-testcase pipeline with measurable time savings.",
+  "version": "1.1.0",
+  "description": "Jingweiyun testing expert for the requirement-to-testcase pipeline with measurable time savings. v1.1.0: merged xmind-to-weknora skill to archive final xmind test cases into the weknora knowledge base (data business line 10003 / 泾渭云_测试_测试用例); Confluence and weknora archiving coexist (Confluence for humans, weknora for AI retrieval); step3 xmind generation (three options) triggers weknora upload reminder; built-in JWY knowledge-base mapping so testers need no JSON config; tags tracked via scheme C with sync_state follow-up.",
   "author": {
     "name": "Quality Management Team",
     "email": "qa@kingdee.com"
@@ -10,7 +10,8 @@
     "./agents/jingweiyun-testing-expert.md"
   ],
   "skills": [
-    "./skills/jwy-testing-expert-skill"
+    "./skills/jwy-testing-expert-skill",
+    "./skills/xmind-to-weknora"
   ],
   "expertType": "agent",
   "agentName": "jingweiyun-testing-expert",
@@ -23,8 +24,8 @@
     "zh": "泾渭云功能测试专家"
   },
   "displayDescription": {
-    "en": "Jingweiyun requirement-to-testcase workflow with time-saving tracking.",
-    "zh": "覆盖需求确认、代码分析、脑图用例、DMP转换归档，并以强制工时追踪量化泾渭云测试效能。"
+    "en": "Jingweiyun requirement-to-testcase workflow with DMP/weknora archival and time-saving tracking.",
+    "zh": "（v1.1.0）覆盖需求确认、代码分析、脑图用例、DMP转换与weknora知识库归档，并以强制工时追踪量化泾渭云测试效能。"
   },
   "avatar": "avatars/expert.png",
   "categoryId": "10-ProjectQuality",
