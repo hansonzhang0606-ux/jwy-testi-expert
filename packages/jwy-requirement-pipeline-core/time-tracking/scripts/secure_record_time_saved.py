@@ -18,7 +18,8 @@ secure_record_time_saved.py — 泾渭云工时追踪「提交即同步」封装
 
 退出码：
   0  本地记录成功（无论同步是否成功，本地记录已保存）
-  1  record_time_saved.py 执行失败（参数错误 / 校验拒绝 / 花名册查询失败致拒绝）
+  1  record_time_saved.py 执行失败（参数错误 / 花名册查询失败致拒绝）
+  2  用户故事信息不完整（缺少 PRJ 编号或故事名称）——本次未记录，须补齐后重试
 """
 
 import argparse
@@ -57,6 +58,8 @@ def build_record_command(args: argparse.Namespace) -> list:
     for flag, value in optional:
         if value is not None and value != "":
             cmd.extend((flag, str(value)))
+    if getattr(args, "allow_partial_user_story", False):
+        cmd.append("--allow-partial-user-story")
     return cmd
 
 
@@ -106,7 +109,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="泾渭云节省工时记录 + 提交即同步（v6.2-JWY）"
     )
     parser.add_argument("--employee", required=True, help="员工姓名（需在花名册中）")
-    parser.add_argument("--user-story", required=True, help="用户故事名称/编号（如 PRJ-xxxxxxx）")
+    parser.add_argument(
+        "--user-story",
+        required=True,
+        help=(
+            "完整用户故事：PRJ 编号 + 故事名称，缺一不可，"
+            "如 PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号"
+        ),
+    )
     parser.add_argument("--step", default="", help="步骤名称（如：需求确认）")
     parser.add_argument("--step-code", default="", help="步骤代码（P1/P2/P3-1/P3-2/P3-3/P4/P5）")
     parser.add_argument(
@@ -133,6 +143,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="调试用：仅记录本地、不同步 MySQL",
     )
+    parser.add_argument(
+        "--allow-partial-user-story",
+        action="store_true",
+        help="排障/历史补录用：允许用户故事只含编号或只含名称（默认关闭，缺失时拒绝记录）",
+    )
     return parser
 
 
@@ -143,9 +158,18 @@ def main(argv=None) -> int:
         print("错误：必须指定 --hours 或 --person-days", file=sys.stderr)
         return 1
 
-    # 先本地落盘（含花名册校验）
+    # 先本地落盘（含花名册校验 + 用户故事完整性校验）
     rec = subprocess.run(build_record_command(args), check=False)
     if rec.returncode != 0:
+        if rec.returncode == 2:
+            print(
+                "\n⚠️  本次工时**未记录**：用户故事信息不完整（缺少 PRJ 编号或故事名称）。",
+                file=sys.stderr,
+            )
+            print(
+                "   请先向测试人员补齐「PRJ 编号 + 故事名称」两部分，再重新执行本命令。",
+                file=sys.stderr,
+            )
         return rec.returncode
 
     if args.no_sync:

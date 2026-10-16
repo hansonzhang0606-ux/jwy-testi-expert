@@ -4,6 +4,12 @@
 时间节省记录脚本 v6.2（通用多业务线版）
 在工作流每个步骤完成后，记录该步骤为人类员工节省了多少时间。
 
+v6.2-JWY 增量（泾渭云）:
+  - 强制用户故事完整性：必须在 --user-story 中同时提供「PRJ 编号」与「故事名称」两部分，
+    如 "PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号"；
+    只给其中一部分时拒绝记录（退出码 2）并提示补齐，避免半截数据入库。
+    排障/历史补录可用 --allow-partial-user-story 放行。
+
 v5.9 增量:
   - 新增 ai_estimated_time_saved_hours，可选且独立于人员反馈
 
@@ -18,11 +24,11 @@ v3 改进:
 用法:
   python record_time_saved.py \
     --employee "张三" \
-    --user-story "US-001-贷款审批流程优化" \
+    --user-story "PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号" \
     --step "文档整理" \
     --step-code "01" \
     --hours 4.0 \
-    --biz-line "智慧记+运营系统" \
+    --biz-line "泾渭云" \
     --agent-start-time "2026-08-27T09:05:00+08:00" \
     --agent-end-time "2026-08-27T09:17:30+08:00" \
     --agent-duration-minutes 12.5 \
@@ -31,11 +37,11 @@ v3 改进:
   # 也可以用人天为单位输入，脚本自动换算为小时存储
   python record_time_saved.py \
     --employee "李四" \
-    --user-story "US-001" \
+    --user-story "PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号" \
     --step "用例细化" \
     --step-code "06" \
     --person-days 1.5 \
-    --biz-line "智慧记+运营系统"
+    --biz-line "泾渭云"
 
 数据存储位置:
   ~/.workbuddy/data/time-tracking/{biz_line}/records.jsonl
@@ -86,6 +92,75 @@ def extract_user_story_code(user_story: str) -> str:
     if m:
         return m.group(0)
     return ""
+
+
+# ——————————————————————————————————————————————
+# 用户故事完整性校验（编号 + 故事名称，两部分缺一不可）
+# 背景：历史上出现过只传「PRJ-00886813」或只传「【泾渭云20260921】xxx」的记录，
+#      导致入库数据 user_story 半截、user_story_code 为空，无法按故事汇总工时。
+# ——————————————————————————————————————————————
+USER_STORY_FORMAT_EXAMPLE = "PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号"
+# 故事名称中的「标签」部分（如 【泾渭云20260915】），不作为名称实质内容
+NAME_LABEL_RE = re.compile(r"[【\[][^】\]]*[】\]]")
+# 名称实质内容：中英文字符
+NAME_CORE_RE = re.compile(r"[\u4e00-\u9fffA-Za-z]")
+MIN_NAME_CORE_CHARS = 2
+
+
+class UserStoryIncompleteError(ValueError):
+    """用户故事缺少 PRJ 编号或故事名称任一部分。"""
+
+
+def split_user_story(user_story: str) -> tuple:
+    """把用户故事拆成 (编号, 故事名称)；缺失的部分返回空串。"""
+    us = (user_story or "").strip()
+    if not us:
+        return "", ""
+    m = STORY_CODE_RE.search(us)
+    if m:
+        code = m.group(1)
+        rest = us[: m.start()] + " " + us[m.end():]
+    else:
+        code = ""
+        rest = us
+    name = rest.strip().strip("-—–~:：,，、|").strip()
+    return code, name
+
+
+def has_meaningful_story_name(name: str) -> bool:
+    """故事名称去掉 【...】 标签后仍需有实质中英文字符（避免只给编号或只给日期标签）。"""
+    core = NAME_LABEL_RE.sub("", name or "")
+    return len(NAME_CORE_RE.findall(core)) >= MIN_NAME_CORE_CHARS
+
+
+def validate_user_story(user_story: str) -> tuple:
+    """校验用户故事是否同时包含编号与故事名称两部分。
+
+    返回 (ok, code, name, missing)：
+      - ok=True 表示两部分齐全；
+      - missing 取值为 ""/"编号"/"故事名称"/"编号、故事名称"，用于生成补齐提示。
+    """
+    code, name = split_user_story(user_story)
+    missing = []
+    if not code:
+        missing.append("编号")
+    if not has_meaningful_story_name(name):
+        missing.append("故事名称")
+    return (not missing), code, name, "、".join(missing)
+
+
+def user_story_reminder(user_story: str) -> str:
+    """生成给测试人员的补齐提示（可直接展示）。"""
+    ok, _code, _name, missing = validate_user_story(user_story)
+    if ok:
+        return ""
+    given = (user_story or "").strip()
+    given_desc = f"当前只提供了「{given}」" if given else "当前未提供用户故事信息"
+    return (
+        f"❌ 用户故事信息不完整：{given_desc}，缺少「{missing}」。\n"
+        f"   工时入库需要「PRJ 编号 + 故事名称」两部分，缺一不可。\n"
+        f"   请补充「{missing}」后重新记录，例如：{USER_STORY_FORMAT_EXAMPLE}"
+    )
 
 
 def normalize_ai_estimated_hours(value):
@@ -186,10 +261,19 @@ def record(
     agent_start_time: str = "",
     agent_end_time: str = "",
     agent_duration_minutes: float = None,
+    allow_partial_user_story: bool = False,
     skip_validation: bool = False,
     ai_estimated_time_saved_hours: float = None,
 ):
     """记录一条时间节省数据（biz_line 未指定时自动从配置解析）"""
+    # 用户故事完整性校验（编号 + 故事名称，缺一不可；拒绝半截数据入库）
+    if not allow_partial_user_story:
+        ok, story_code, story_name, missing = validate_user_story(user_story)
+        if not ok:
+            raise UserStoryIncompleteError(
+                f"用户故事信息不完整：缺少「{missing}」。"
+                f"工时入库需要「PRJ 编号 + 故事名称」两部分，例如：{USER_STORY_FORMAT_EXAMPLE}"
+            )
     if not biz_line:
         from biz_line_helper import resolve_biz_line
         biz_line = resolve_biz_line("")
@@ -342,7 +426,14 @@ def sync_to_excel_if_configured(record: dict, biz_line: str):
 def main():
     parser = argparse.ArgumentParser(description="记录时间节省数据 v6.2")
     parser.add_argument("--employee", required=True, help="员工姓名（需在花名册中）")
-    parser.add_argument("--user-story", required=True, help="用户故事名称/编号")
+    parser.add_argument(
+        "--user-story",
+        required=True,
+        help=(
+            "完整用户故事：PRJ 编号 + 故事名称，缺一不可，"
+            f"如 {USER_STORY_FORMAT_EXAMPLE}"
+        ),
+    )
     parser.add_argument("--step", default="", help="步骤名称（如：文档整理）")
     parser.add_argument("--step-code", default="", help="步骤代码（01/02/04/06/07）")
     parser.add_argument("--hours", type=float, default=None, help="节省时间（小时）")
@@ -359,6 +450,11 @@ def main():
         help="AI 预估本环节可节省时间（小时，独立于人员反馈）",
     )
     parser.add_argument("--skip-validation", action="store_true", help="跳过花名册校验")
+    parser.add_argument(
+        "--allow-partial-user-story",
+        action="store_true",
+        help="排障/历史补录用：允许用户故事只含编号或只含名称（默认关闭，缺失时拒绝记录）",
+    )
 
     args = parser.parse_args()
 
@@ -366,21 +462,31 @@ def main():
         print("错误：必须指定 --hours 或 --person-days", file=sys.stderr)
         sys.exit(1)
 
-    record(
-        employee=args.employee,
-        user_story=args.user_story,
-        step=args.step,
-        step_code=args.step_code,
-        hours=args.hours,
-        person_days=args.person_days,
-        biz_line=args.biz_line,
-        remark=args.remark,
-        agent_start_time=args.agent_start_time,
-        agent_end_time=args.agent_end_time,
-        agent_duration_minutes=args.agent_duration_minutes,
-        ai_estimated_time_saved_hours=args.ai_estimated_time_saved_hours,
-        skip_validation=args.skip_validation,
-    )
+    try:
+        record(
+            employee=args.employee,
+            user_story=args.user_story,
+            step=args.step,
+            step_code=args.step_code,
+            hours=args.hours,
+            person_days=args.person_days,
+            biz_line=args.biz_line,
+            remark=args.remark,
+            agent_start_time=args.agent_start_time,
+            agent_end_time=args.agent_end_time,
+            agent_duration_minutes=args.agent_duration_minutes,
+            ai_estimated_time_saved_hours=args.ai_estimated_time_saved_hours,
+            allow_partial_user_story=args.allow_partial_user_story,
+            skip_validation=args.skip_validation,
+        )
+    except UserStoryIncompleteError:
+        print(user_story_reminder(args.user_story), file=sys.stderr)
+        print(
+            f"   本次未写入任何记录；补齐后重试（如确需先记录，可加 --allow-partial-user-story，"
+            f"但不建议：会造成工时无法按故事汇总）。",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
 
 if __name__ == "__main__":

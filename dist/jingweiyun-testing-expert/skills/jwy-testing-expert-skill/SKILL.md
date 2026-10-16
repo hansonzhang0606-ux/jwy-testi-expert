@@ -14,6 +14,16 @@ description: |
 
 工时按「提交即同步（A）+ 提示词回补（B）」自动进入 MySQL `agent_time_tracking` 表，无需等待定时任务；录错时用 `void_time_record.py` 软作废（或联系管理员执行 DELETE）。
 
+## 用户故事信息（工时入库前置，强制）
+
+工时入库要求用户故事**两部分齐全**：`<PRJ 编号>-<故事名称>`，例 `PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号`。
+
+- 需求开始时先确认这两部分，P1~P5 全程复用同一串；
+- 测试人员**只给一部分**（只给 PRJ 编号 / 只给故事名称）时，**追问补齐再推进**，不得臆造 PRJ 编号；
+- 脚本层硬校验：缺任一部分时 `record_time_saved.py` / `secure_record_time_saved.py` **拒绝记录**（退出码 2）并返回补齐提示，`--allow-partial-user-story` 仅供排障/历史补录。
+
+> 详细规则见 `prompts/pipeline.md`「用户故事信息」与 `time-tracking/prompts/time_tracking.md`「用户故事完整性」。
+
 ## weknora 知识库归档（xmind-to-weknora 技能）
 
 本专家已合并 `xmind-to-weknora` 技能，负责把**终稿 xmind 用例**转 Markdown 并归档到团队 weknora 知识库。完整说明见 `../xmind-to-weknora/SKILL.md` 与 `../xmind-to-weknora/references/expert_integration.md`。

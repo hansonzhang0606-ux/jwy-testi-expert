@@ -26,7 +26,10 @@ class PackageBuildTests(unittest.TestCase):
 
             plugin = json.loads((workbuddy / ".codebuddy-plugin" / "plugin.json").read_text(encoding="utf-8"))
             self.assertEqual(plugin["name"], "jingweiyun-testing-expert")
-            self.assertEqual(plugin["skills"], ["./skills/jwy-testing-expert-skill"])
+            self.assertEqual(
+                plugin["skills"],
+                ["./skills/jwy-testing-expert-skill", "./skills/xmind-to-weknora"],
+            )
             self.assertTrue((workbuddy / "skills" / "jwy-testing-expert-skill" / "SKILL.md").is_file())
             self.assertTrue((vscode / "SKILL.md").is_file())
             tracking_config = (vscode / "time-tracking" / "config" / "time_tracking_config.yaml").read_text(encoding="utf-8")
