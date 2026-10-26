@@ -36,6 +36,15 @@ class CaptureConnection:
         return CaptureCursor(self)
 
 
+def _find_insert_call(conn):
+    """upsert_record 在 INSERT 前会先执行 record_key_exists / business_dup_exists 的
+    SELECT，因此 INSERT 不一定是 calls[0]。定位真正的 INSERT 调用。"""
+    for sql, params in conn.calls:
+        if sql.strip().upper().startswith("INSERT INTO"):
+            return sql, params
+    raise AssertionError("未捕获到 INSERT 调用")
+
+
 def sample_record(include_ai_field=True):
     record = {
         "timestamp": "2026-08-31T10:20:30+08:00",
@@ -92,7 +101,7 @@ class SyncToMysqlV59Tests(unittest.TestCase):
             include_ai_estimate=True,
         )
 
-        sql, params = conn.calls[0]
+        sql, params = _find_insert_call(conn)
         self.assertIn("ai_estimated_time_saved_hours", sql)
         self.assertEqual(params["ai_estimated_time_saved_hours"], 2.5)
 
@@ -108,7 +117,7 @@ class SyncToMysqlV59Tests(unittest.TestCase):
             include_ai_estimate=True,
         )
 
-        _, params = conn.calls[0]
+        _, params = _find_insert_call(conn)
         self.assertIsNone(params["ai_estimated_time_saved_hours"])
 
     def test_v58_compatibility_upsert_omits_ai_estimate(self):
@@ -123,10 +132,46 @@ class SyncToMysqlV59Tests(unittest.TestCase):
             include_ai_estimate=False,
         )
 
-        sql, params = conn.calls[0]
+        sql, params = _find_insert_call(conn)
         self.assertNotIn("ai_estimated_time_saved_hours", sql)
         self.assertNotIn("ai_estimated_time_saved_hours", params)
         self.assertEqual(params["time_saved_hours"], 3.0)
+
+    def test_upsert_includes_digital_employee_code(self):
+        conn = CaptureConnection()
+        record = sample_record()
+        record["digital_employee_code"] = "DE-025"
+
+        sync_module.upsert_record(
+            conn,
+            "agent_time_tracking",
+            record,
+            "泾渭云",
+            "JWY",
+            include_digital_employee=True,
+        )
+
+        sql, params = _find_insert_call(conn)
+        self.assertIn("digital_employee_code", sql)
+        self.assertEqual(params["digital_employee_code"], "DE-025")
+        # UPDATE 用 COALESCE 保护已回填值，不被空值冲掉
+        self.assertIn("COALESCE(NULLIF(VALUES(digital_employee_code)", sql)
+
+    def test_upsert_omits_digital_employee_code_when_disabled(self):
+        conn = CaptureConnection()
+
+        sync_module.upsert_record(
+            conn,
+            "agent_time_tracking",
+            sample_record(),
+            "效贷",
+            "XD",
+            include_digital_employee=False,
+        )
+
+        sql, params = _find_insert_call(conn)
+        self.assertNotIn("digital_employee_code", sql)
+        self.assertNotIn("digital_employee_code", params)
 
 
 if __name__ == "__main__":

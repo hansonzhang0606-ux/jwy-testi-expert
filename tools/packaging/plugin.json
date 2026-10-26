@@ -1,7 +1,7 @@
 {
   "name": "jingweiyun-testing-expert",
-  "version": "1.2.0",
-  "description": "Jingweiyun testing expert for the requirement-to-testcase pipeline with measurable time savings. v1.2.0: enforces a complete user-story identity (PRJ code + story name) before any time-saving record is written — if the tester supplies only one part, the expert asks for the missing part before continuing, and the record scripts refuse partial input with exit code 2 and a fill-in template, so agent_time_tracking rows always carry both user_story and user_story_code; adds --allow-partial-user-story (troubleshooting/backfill only). v1.1.0: merged xmind-to-weknora skill to archive final xmind test cases into the weknora knowledge base (data business line 10003 / 泾渭云_测试_测试用例); Confluence and weknora archiving coexist (Confluence for humans, weknora for AI retrieval); step3 xmind generation (three options) triggers weknora upload reminder; built-in JWY knowledge-base mapping so testers need no JSON config; tags tracked via scheme C with sync_state follow-up.",
+  "version": "1.2.1",
+  "description": "Jingweiyun testing expert for the requirement-to-testcase pipeline with measurable time savings. v1.2.1: writes digital_employee_code (DE-025 for 泾渭云) into agent_time_tracking so every time-saving row is attributed to the correct digital employee; v1.2.0: enforces a complete user-story identity (PRJ code + story name) before any time-saving record is written — if the tester supplies only one part, the expert asks for the missing part before continuing, and the record scripts refuse partial input with exit code 2 and a fill-in template, so agent_time_tracking rows always carry both user_story and user_story_code; adds --allow-partial-user-story (troubleshooting/backfill only). v1.1.0: merged xmind-to-weknora skill to archive final xmind test cases into the weknora knowledge base (data business line 10003 / 泾渭云_测试_测试用例); Confluence and weknora archiving coexist (Confluence for humans, weknora for AI retrieval); step3 xmind generation (three options) triggers weknora upload reminder; built-in JWY knowledge-base mapping so testers need no JSON config; tags tracked via scheme C with sync_state follow-up.",
   "author": {
     "name": "Quality Management Team",
     "email": "qa@kingdee.com"
@@ -25,7 +25,7 @@
   },
   "displayDescription": {
     "en": "Jingweiyun requirement-to-testcase workflow with DMP/weknora archival and time-saving tracking.",
-    "zh": "（v1.2.0）覆盖需求确认、代码分析、脑图用例、DMP转换与weknora知识库归档；新增用户故事完整性校验（PRJ 编号 + 故事名称缺一不可，缺失即提醒补齐，脚本层拒绝半截数据），并以强制工时追踪量化泾渭云测试效能。"
+    "zh": "（v1.2.1）覆盖需求确认、代码分析、脑图用例、DMP转换与weknora知识库归档；新增用户故事完整性校验（PRJ 编号 + 故事名称缺一不可，缺失即提醒补齐，脚本层拒绝半截数据），并自动将数字员工编号 digital_employee_code（泾渭云=DE-025）写入 agent_time_tracking，以强制工时追踪量化泾渭云测试效能。"
   },
   "avatar": "avatars/expert.png",
   "categoryId": "10-ProjectQuality",

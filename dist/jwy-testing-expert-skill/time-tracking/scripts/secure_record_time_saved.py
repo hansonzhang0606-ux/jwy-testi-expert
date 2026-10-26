@@ -54,6 +54,7 @@ def build_record_command(args: argparse.Namespace) -> list:
         ("--agent-end-time", args.agent_end_time),
         ("--agent-duration-minutes", args.agent_duration_minutes),
         ("--ai-estimated-time-saved-hours", args.ai_estimated_time_saved_hours),
+        ("--digital-employee-code", args.digital_employee_code),
     )
     for flag, value in optional:
         if value is not None and value != "":
@@ -137,6 +138,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="AI 预估本环节可节省时间（小时，独立于人员反馈）",
+    )
+    parser.add_argument(
+        "--digital-employee-code",
+        default=None,
+        help="数字员工编号（覆盖 config 中的 digital_employee_code，如 DE-025；不传则取配置）",
     )
     parser.add_argument(
         "--no-sync",

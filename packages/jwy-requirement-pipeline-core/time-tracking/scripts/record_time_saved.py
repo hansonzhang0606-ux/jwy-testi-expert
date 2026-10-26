@@ -261,6 +261,7 @@ def record(
     agent_start_time: str = "",
     agent_end_time: str = "",
     agent_duration_minutes: float = None,
+    digital_employee_code: str = None,
     allow_partial_user_story: bool = False,
     skip_validation: bool = False,
     ai_estimated_time_saved_hours: float = None,
@@ -320,6 +321,9 @@ def record(
         ai_estimated_time_saved_hours
     )
 
+    # 数字员工编号：显式传入优先，否则取本部署配置的编号（DA-025 等）
+    dec = (digital_employee_code or get_digital_employee_code() or "").strip()
+
     record = {
         "timestamp": now.isoformat(),
         "date": now.strftime("%Y-%m-%d"),
@@ -335,6 +339,7 @@ def record(
         "agent_start_time": agent_start_time or "",
         "agent_end_time": agent_end_time or "",
         "agent_duration_minutes": float(agent_duration_minutes) if agent_duration_minutes is not None else None,
+        "digital_employee_code": dec,
         "ai_estimated_time_saved_hours": ai_estimated_hours,
         "remark": remark,
     }
@@ -364,6 +369,8 @@ def record(
     if ai_estimated_hours is not None:
         print(f"   AI 预估节省时间: {ai_estimated_hours} 小时（独立于人员反馈）")
     print(f"   业务线: {biz_line}")
+    if dec:
+        print(f"   数字员工: {dec}")
     if ref_str:
         print(ref_str, end="")
     if remark:
@@ -389,14 +396,29 @@ def load_tracking_config() -> dict:
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except ImportError:
-        # 简易解析
+        # 简易解析（无 PyYAML 时）：仅解析已知标量字段
         config = {}
         with open(config_path, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("storage_mode:"):
                     config["storage_mode"] = line.split(":", 1)[1].strip().strip('"')
+                elif line.startswith("digital_employee_code:"):
+                    config["digital_employee_code"] = (
+                        line.split(":", 1)[1].strip().strip('"').strip("'")
+                    )
         return config
+
+
+def get_digital_employee_code() -> str:
+    """读取本数字员工编号（agent_ai_employee_info.employee_code）。
+
+    来源：config/time_tracking_config.yaml 的 digital_employee_code（每个数字员工
+    部署时填自己的编号，如 泾渭云测试专家=DE-025）。记录入库时写入
+    agent_time_tracking.digital_employee_code，便于按数字员工维度统计工时。
+    未配置时返回空串（不阻断记录；同步时若 DB 已有值则用 COALESCE 保留）。
+    """
+    return (load_tracking_config().get("digital_employee_code") or "").strip()
 
 
 def sync_to_excel_if_configured(record: dict, biz_line: str):
@@ -444,6 +466,11 @@ def main():
     parser.add_argument("--agent-end-time", default="", help="智能体完成本步骤的 ISO 时间戳（如 2026-08-27T09:17:30+08:00）")
     parser.add_argument("--agent-duration-minutes", type=float, default=None, help="智能体实际执行耗时（分钟）")
     parser.add_argument(
+        "--digital-employee-code",
+        default=None,
+        help="数字员工编号（覆盖 config 中的 digital_employee_code，如 DE-025；不传则取配置）",
+    )
+    parser.add_argument(
         "--ai-estimated-time-saved-hours",
         type=float,
         default=None,
@@ -475,6 +502,7 @@ def main():
             agent_start_time=args.agent_start_time,
             agent_end_time=args.agent_end_time,
             agent_duration_minutes=args.agent_duration_minutes,
+            digital_employee_code=args.digital_employee_code,
             ai_estimated_time_saved_hours=args.ai_estimated_time_saved_hours,
             allow_partial_user_story=args.allow_partial_user_story,
             skip_validation=args.skip_validation,

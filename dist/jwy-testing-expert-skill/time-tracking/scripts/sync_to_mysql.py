@@ -48,6 +48,7 @@ from biz_line_helper import BIZ_LINE_CODE_MAP as BIZ_LINE_CODE_MAP
 
 HOME = os.path.expanduser("~")
 AI_ESTIMATE_COLUMN = "ai_estimated_time_saved_hours"
+DIGITAL_EMPLOYEE_COLUMN = "digital_employee_code"
 
 
 def get_data_dir(biz_line):
@@ -204,6 +205,7 @@ def upsert_record(
     biz_line,
     biz_line_code,
     include_ai_estimate=False,
+    include_digital_employee=False,
 ):
     """幂等 upsert 一条记录（record_key 唯一键兜底；额外按业务字段组合去重）"""
     record_key = compute_record_key(record, biz_line_code)
@@ -221,27 +223,32 @@ def upsert_record(
        business_dup_exists(conn, table, biz_line_code, _employee, user_story_code, _step_code, _hours):
         return "skipped_dup"
 
-    sql = f"""
-        INSERT INTO {table}
-            (record_key, timestamp, date, biz_line, biz_line_code, employee, user_story,
-             user_story_code, step, step_code, time_saved_hours, time_saved_pd, total_hours,
-             agent_start_time, agent_end_time, agent_duration_minutes, remark)
-        VALUES (%(record_key)s, %(timestamp)s, %(date)s, %(biz_line)s, %(biz_line_code)s,
-                %(employee)s, %(user_story)s, %(user_story_code)s, %(step)s, %(step_code)s,
-                %(time_saved_hours)s, %(time_saved_pd)s, %(total_hours)s,
-                %(agent_start_time)s, %(agent_end_time)s, %(agent_duration_minutes)s, %(remark)s)
-        ON DUPLICATE KEY UPDATE
-            timestamp=VALUES(timestamp), date=VALUES(date),
-            user_story=VALUES(user_story), user_story_code=VALUES(user_story_code),
-            step=VALUES(step), step_code=VALUES(step_code),
-            time_saved_hours=VALUES(time_saved_hours),
-            time_saved_pd=VALUES(time_saved_pd),
-            total_hours=VALUES(total_hours),
-            agent_start_time=VALUES(agent_start_time),
-            agent_end_time=VALUES(agent_end_time),
-            agent_duration_minutes=VALUES(agent_duration_minutes),
-            remark=VALUES(remark)
-    """
+    # 基础列（与 v5.8 一致）
+    columns = [
+        "record_key", "timestamp", "date", "biz_line", "biz_line_code", "employee",
+        "user_story", "user_story_code", "step", "step_code", "time_saved_hours",
+        "time_saved_pd", "total_hours", "agent_start_time", "agent_end_time",
+        "agent_duration_minutes", "remark",
+    ]
+    placeholders = [
+        "%(record_key)s", "%(timestamp)s", "%(date)s", "%(biz_line)s", "%(biz_line_code)s",
+        "%(employee)s", "%(user_story)s", "%(user_story_code)s", "%(step)s", "%(step_code)s",
+        "%(time_saved_hours)s", "%(time_saved_pd)s", "%(total_hours)s",
+        "%(agent_start_time)s", "%(agent_end_time)s", "%(agent_duration_minutes)s", "%(remark)s",
+    ]
+    update_assign = [
+        "timestamp=VALUES(timestamp)", "date=VALUES(date)",
+        "user_story=VALUES(user_story)", "user_story_code=VALUES(user_story_code)",
+        "step=VALUES(step)", "step_code=VALUES(step_code)",
+        "time_saved_hours=VALUES(time_saved_hours)",
+        "time_saved_pd=VALUES(time_saved_pd)",
+        "total_hours=VALUES(total_hours)",
+        "agent_start_time=VALUES(agent_start_time)",
+        "agent_end_time=VALUES(agent_end_time)",
+        "agent_duration_minutes=VALUES(agent_duration_minutes)",
+        "remark=VALUES(remark)",
+    ]
+
     params = {
         "record_key": record_key,
         "timestamp": ts,
@@ -261,37 +268,33 @@ def upsert_record(
         "agent_duration_minutes": float(record.get("agent_duration_minutes")) if record.get("agent_duration_minutes") not in (None, "") else None,
         "remark": record.get("remark", ""),
     }
+
     if include_ai_estimate:
         raw_ai_estimate = record.get(AI_ESTIMATE_COLUMN)
         params[AI_ESTIMATE_COLUMN] = (
-            float(raw_ai_estimate)
-            if raw_ai_estimate not in (None, "")
-            else None
+            float(raw_ai_estimate) if raw_ai_estimate not in (None, "") else None
         )
-        sql = f"""
-            INSERT INTO {table}
-                (record_key, timestamp, date, biz_line, biz_line_code, employee, user_story,
-                 user_story_code, step, step_code, time_saved_hours, time_saved_pd, total_hours,
-                 agent_start_time, agent_end_time, agent_duration_minutes,
-                 ai_estimated_time_saved_hours, remark)
-            VALUES (%(record_key)s, %(timestamp)s, %(date)s, %(biz_line)s, %(biz_line_code)s,
-                    %(employee)s, %(user_story)s, %(user_story_code)s, %(step)s, %(step_code)s,
-                    %(time_saved_hours)s, %(time_saved_pd)s, %(total_hours)s,
-                    %(agent_start_time)s, %(agent_end_time)s, %(agent_duration_minutes)s,
-                    %(ai_estimated_time_saved_hours)s, %(remark)s)
-            ON DUPLICATE KEY UPDATE
-                timestamp=VALUES(timestamp), date=VALUES(date),
-                user_story=VALUES(user_story), user_story_code=VALUES(user_story_code),
-                step=VALUES(step), step_code=VALUES(step_code),
-                time_saved_hours=VALUES(time_saved_hours),
-                time_saved_pd=VALUES(time_saved_pd),
-                total_hours=VALUES(total_hours),
-                agent_start_time=VALUES(agent_start_time),
-                agent_end_time=VALUES(agent_end_time),
-                agent_duration_minutes=VALUES(agent_duration_minutes),
-                ai_estimated_time_saved_hours=VALUES(ai_estimated_time_saved_hours),
-                remark=VALUES(remark)
-        """
+        columns.append(AI_ESTIMATE_COLUMN)
+        placeholders.append("%(" + AI_ESTIMATE_COLUMN + ")s")
+        update_assign.append(AI_ESTIMATE_COLUMN + "=VALUES(" + AI_ESTIMATE_COLUMN + ")")
+
+    if include_digital_employee:
+        # 数字员工编号：传入非空时写入；UPDATE 用 COALESCE(NULLIF(...,''), 原值)，
+        # 防止"旧 JSONL 缺该字段"的重同步把已回填的编号冲成空。
+        dec_value = (record.get(DIGITAL_EMPLOYEE_COLUMN) or "").strip()
+        params[DIGITAL_EMPLOYEE_COLUMN] = dec_value
+        columns.append(DIGITAL_EMPLOYEE_COLUMN)
+        placeholders.append("%(" + DIGITAL_EMPLOYEE_COLUMN + ")s")
+        update_assign.append(
+            DIGITAL_EMPLOYEE_COLUMN + "=COALESCE(NULLIF(VALUES("
+            + DIGITAL_EMPLOYEE_COLUMN + "), ''), " + DIGITAL_EMPLOYEE_COLUMN + ")"
+        )
+
+    sql = (
+        f"INSERT INTO {table} ({', '.join(columns)}) "
+        f"VALUES ({', '.join(placeholders)}) "
+        f"ON DUPLICATE KEY UPDATE {', '.join(update_assign)}"
+    )
     with conn.cursor() as cur:
         cur.execute(sql, params)
     return "upserted"
@@ -357,6 +360,14 @@ def main():
             file=sys.stderr,
         )
 
+    include_digital_employee = table_has_column(conn, table, DIGITAL_EMPLOYEE_COLUMN)
+    if not include_digital_employee:
+        print(
+            "⚠️  目标表尚无 digital_employee_code 列；本次不同步数字员工编号。"
+            "可先执行 sql/upgrade_to_v6.3_add_digital_employee_code.sql 加列。",
+            file=sys.stderr,
+        )
+
     ok = 0
     fail = 0
     skipped = 0
@@ -369,6 +380,7 @@ def main():
                 biz_line,
                 biz_line_code,
                 include_ai_estimate=include_ai_estimate,
+                include_digital_employee=include_digital_employee,
             )
             if status == "skipped_dup":
                 skipped += 1

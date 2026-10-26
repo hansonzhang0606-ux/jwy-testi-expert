@@ -81,6 +81,20 @@ class RecordTimeSavedV59Tests(unittest.TestCase):
             ["skip_validation", "ai_estimated_time_saved_hours"],
         )
 
+    def test_writes_digital_employee_code_from_config(self):
+        expected = record_module.get_digital_employee_code()
+        if not expected:
+            self.skipTest("config 未配置 digital_employee_code")
+
+        _, saved = self.record_to_temp_jsonl()
+
+        self.assertEqual(saved["digital_employee_code"], expected)
+
+    def test_override_digital_employee_code(self):
+        _, saved = self.record_to_temp_jsonl(digital_employee_code="DE-999")
+
+        self.assertEqual(saved["digital_employee_code"], "DE-999")
+
 
 if __name__ == "__main__":
     unittest.main()
