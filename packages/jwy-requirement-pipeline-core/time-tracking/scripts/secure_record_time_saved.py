@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-secure_record_time_saved.py — 泾渭云工时追踪「提交即同步」封装 v6.2-JWY
+secure_record_time_saved.py — 泾渭云工时追踪「提交即同步」封装 v6.3-JWY
 
 融合方案 A+B：
   A（提交即同步）：调用 record_time_saved.py 在本地 records.jsonl 落盘成功后，
@@ -107,7 +107,7 @@ def sync_after_record(biz_line: str) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="泾渭云节省工时记录 + 提交即同步（v6.2-JWY）"
+        description="泾渭云节省工时记录 + 提交即同步（v6.3-JWY）"
     )
     parser.add_argument("--employee", required=True, help="员工姓名（需在花名册中）")
     parser.add_argument(

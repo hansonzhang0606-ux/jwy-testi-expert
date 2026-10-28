@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-时间节省记录脚本 v6.2（通用多业务线版）
+时间节省记录脚本 v6.3（通用多业务线版）
 在工作流每个步骤完成后，记录该步骤为人类员工节省了多少时间。
 
-v6.2-JWY 增量（泾渭云）:
+v6.3-JWY 增量（泾渭云）:
   - 强制用户故事完整性：必须在 --user-story 中同时提供「PRJ 编号」与「故事名称」两部分，
     如 "PRJ-00884552-【泾渭云20260915】修改泾渭云使用中台数据库账号"；
     只给其中一部分时拒绝记录（退出码 2）并提示补齐，避免半截数据入库。
@@ -446,7 +446,7 @@ def sync_to_excel_if_configured(record: dict, biz_line: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="记录时间节省数据 v6.2")
+    parser = argparse.ArgumentParser(description="记录时间节省数据 v6.3")
     parser.add_argument("--employee", required=True, help="员工姓名（需在花名册中）")
     parser.add_argument(
         "--user-story",
